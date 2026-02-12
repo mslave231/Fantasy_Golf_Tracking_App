@@ -891,11 +891,23 @@ async function loadCurrentWeekLeaderboard() {
     const competitors = data.events?.[0]?.competitions?.[0]?.competitors || [];
 
     const getThruDisplay = (competitor) => {
+      if (competitor?.status?.thru != null) {
+        return competitor.status.thru >= 18 ? 'F' : competitor.status.thru.toString();
+      }
+
+      if (competitor?.status?.hole != null) {
+        return competitor.status.hole >= 18 ? 'F' : competitor.status.hole.toString();
+      }
+
+      if (competitor?.status?.displayThru) {
+        return competitor.status.displayThru;
+      }
+
       if (competitor?.thru != null) {
         return competitor.thru >= 18 ? 'F' : competitor.thru.toString();
       }
 
-      const detail = competitor?.status?.type?.detail || '';
+      const detail = competitor?.status?.displayValue || competitor?.status?.detail || competitor?.status?.type?.detail || '';
       const detailLower = detail.toLowerCase();
       const thruMatch = detailLower.match(/(?:thru|through)\s*(\d{1,2})/);
       if (thruMatch) return thruMatch[1];
@@ -908,11 +920,19 @@ async function loadCurrentWeekLeaderboard() {
       return '--';
     };
 
+    const getTotalScoreDisplay = (competitor) => {
+      const scoreToParStat = (competitor?.statistics || []).find(s => s?.name === 'scoreToPar' && s?.displayValue != null);
+      if (scoreToParStat && scoreToParStat.displayValue !== '-') {
+        return scoreToParStat.displayValue;
+      }
+      return competitor?.score?.displayValue || '--';
+    };
+
     const golferMap = {};
     competitors.forEach(c => {
       const nameLower = c.athlete.displayName.toLowerCase();
       let pos = c.status.position?.displayName || '--';
-      let total = c.score?.displayValue || '--';
+      let total = getTotalScoreDisplay(c);
       let thru = '--';
       let today = '--';
       let posNum = Infinity;
