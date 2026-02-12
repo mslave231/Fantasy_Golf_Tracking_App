@@ -424,7 +424,7 @@
   <div class="standings-panel">
     <div class="standings-title">Season Leaderboard</div>
     <div class="last-event-control">
-      <span>Event column:</span>
+      <span>Latest Event:</span>
       <select id="lastEventSelect" onchange="renderStandings()"></select>
     </div>
     <div id="standingsContainer"></div>
@@ -530,7 +530,7 @@ const TOURNAMENTS = [
 ];
 
 const STORAGE_KEY = 'fantasyGolfLeague';
-const DATA_VERSION = '2026-v2';
+const DATA_VERSION = '2026-v3';
 
 // ===== STATE =====
 let state = {
@@ -540,36 +540,43 @@ let state = {
     '0-401811929': { golfer: 'Matt Fitzpatrick', earnings: null, position: null },
     '0-401811930': { golfer: 'Max Greyserman', earnings: null, position: null },
     '0-401811931': { golfer: 'Scottie Scheffler', earnings: null, position: null },
+    '0-401811932': { golfer: 'Chris Gotterup', earnings: null, position: null },
 
     '1-401811928': { golfer: 'Keegan Bradley', earnings: null, position: null },
     '1-401811929': { golfer: 'J.T. Poston', earnings: null, position: null },
     '1-401811930': { golfer: 'Wyndham Clark', earnings: null, position: null },
     '1-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+    '1-401811932': { golfer: 'Russell Henley', earnings: null, position: null },
 
     '2-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
     '2-401811929': { golfer: 'Robert MacIntyre', earnings: null, position: null },
     '2-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
     '2-401811931': { golfer: 'Maverick McNealy', earnings: null, position: null },
+    '2-401811932': { golfer: 'Si Woo Kim', earnings: null, position: null },
 
     '3-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
     '3-401811929': { golfer: 'Russell Henley', earnings: null, position: null },
     '3-401811930': { golfer: 'Ludvig Åberg', earnings: null, position: null },
     '3-401811931': { golfer: 'Xander Schauffele', earnings: null, position: null },
+    '3-401811932': { golfer: 'Scottie Scheffler', earnings: null, position: null },
 
     '4-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
     '4-401811929': { golfer: 'Sepp Straka', earnings: null, position: null },
     '4-401811930': { golfer: 'Jason Day', earnings: null, position: null },
     '4-401811931': { golfer: 'Jake Knapp', earnings: null, position: null },
+    '4-401811932': { golfer: 'Scottie Scheffler', earnings: null, position: null },
 
     '5-401811928': { golfer: 'Harry Hall', earnings: null, position: null },
     '5-401811929': { golfer: 'Si Woo Kim', earnings: null, position: null },
     '5-401811930': { golfer: 'Sam Stevens', earnings: null, position: null },
     '5-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+    '5-401811932': { golfer: 'Akshay Bhatia', earnings: null, position: null },
 
     '6-401811928': { golfer: 'Collin Morikawa', earnings: null, position: null },
     '6-401811929': { golfer: 'Patrick Cantlay', earnings: null, position: null },
     '6-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
-    '6-401811931': { golfer: 'Ben Griffin', earnings: null, position: null }
+    '6-401811931': { golfer: 'Ben Griffin', earnings: null, position: null },
+    '6-401811932': { golfer: 'Tommy Fleetwood', earnings: null, position: null }
   },
   scoredTournaments: []
 };
@@ -627,9 +634,9 @@ function getOrdinal(n) {
 function renderAll() {
   renderHeader();
   renderGrid();
-  renderStandings();
   populateTournamentSelect();
   populateLastEventSelect();
+  renderStandings();
   populateCurrentWeekSelect();
   loadCurrentWeekLeaderboard();
 }
@@ -745,13 +752,7 @@ function populateLastEventSelect() {
   const select = document.getElementById('lastEventSelect');
   select.innerHTML = '';
 
-  let latestId = null;
-  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
-    if (state.scoredTournaments.includes(TOURNAMENTS[i].id)) {
-      latestId = TOURNAMENTS[i].id;
-      break;
-    }
-  }
+  const latestId = getMostRecentPositiveEarningsTournamentId();
 
   TOURNAMENTS.forEach(t => {
     const opt = document.createElement('option');
@@ -762,6 +763,26 @@ function populateLastEventSelect() {
   });
 
   select.value = latestId || TOURNAMENTS[TOURNAMENTS.length - 1].id;
+}
+
+function getMostRecentPositiveEarningsTournamentId() {
+  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
+    const tId = TOURNAMENTS[i].id;
+    for (let pIdx = 0; pIdx < state.participants.length; pIdx++) {
+      const pick = state.picks[`${pIdx}-${tId}`];
+      if (pick && pick.earnings != null && pick.earnings > 0) {
+        return tId;
+      }
+    }
+  }
+
+  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
+    if (state.scoredTournaments.includes(TOURNAMENTS[i].id)) {
+      return TOURNAMENTS[i].id;
+    }
+  }
+
+  return null;
 }
 
 function renderStandings() {
@@ -804,21 +825,24 @@ function renderStandings() {
 
   const leaderTotal = participantStats[0].totalEarnings;
 
-  const selectedTid = document.getElementById('lastEventSelect').value;
+  const lastEventSelect = document.getElementById('lastEventSelect');
+  let selectedTid = lastEventSelect.value;
+  if (!selectedTid) {
+    selectedTid = getMostRecentPositiveEarningsTournamentId() || TOURNAMENTS[TOURNAMENTS.length - 1].id;
+    lastEventSelect.value = selectedTid;
+  }
   const selectedTournament = TOURNAMENTS.find(t => t.id === selectedTid);
 
   participantStats.forEach(s => {
-    if (selectedTid) {
-      const key = `${s.pIdx}-${selectedTid}`;
-      const pick = state.picks[key];
-      s.lastEarnings = (pick && pick.earnings != null) ? pick.earnings : 0;
-    }
+    const key = `${s.pIdx}-${selectedTid}`;
+    const pick = state.picks[key];
+    s.lastEarnings = (pick && pick.earnings != null) ? pick.earnings : 0;
   });
 
   let tableHTML = '<table class="leaderboard-table"><thead><tr>';
   tableHTML += '<th style="text-align:center;">Rank</th>';
   tableHTML += '<th style="text-align:left;">Player</th>';
-  tableHTML += `<th style="text-align:center;">Last Event${selectedTournament ? ' (' + selectedTournament.abbr + ')' : ''}</th>`;
+  tableHTML += `<th style="text-align:center;">Latest Event${selectedTournament ? ' (' + selectedTournament.abbr + ')' : ''}</th>`;
   tableHTML += '<th style="text-align:center;">Total</th>';
   tableHTML += '<th style="text-align:center;">Back</th>';
   tableHTML += '<th style="text-align:center;">Missed Cuts</th>';
@@ -845,17 +869,25 @@ function renderStandings() {
   container.innerHTML = tableHTML;
 }
 
+function getMostRecentTournamentWithAnyPickId() {
+  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
+    const tId = TOURNAMENTS[i].id;
+    for (let pIdx = 0; pIdx < state.participants.length; pIdx++) {
+      const pick = state.picks[`${pIdx}-${tId}`];
+      if (pick && pick.golfer && pick.golfer.trim()) {
+        return tId;
+      }
+    }
+  }
+
+  return null;
+}
+
 function populateCurrentWeekSelect() {
   const select = document.getElementById('currentWeekSelect');
   select.innerHTML = '';
 
-  let latestId = null;
-  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
-    if (state.scoredTournaments.includes(TOURNAMENTS[i].id)) {
-      latestId = TOURNAMENTS[i].id;
-      break;
-    }
-  }
+  const latestPickedId = getMostRecentTournamentWithAnyPickId();
 
   TOURNAMENTS.forEach(t => {
     const opt = document.createElement('option');
@@ -865,7 +897,7 @@ function populateCurrentWeekSelect() {
     select.appendChild(opt);
   });
 
-  select.value = latestId || TOURNAMENTS[TOURNAMENTS.length - 1].id;
+  select.value = latestPickedId || TOURNAMENTS[TOURNAMENTS.length - 1].id;
 }
 
 async function loadCurrentWeekLeaderboard() {
@@ -891,18 +923,59 @@ async function loadCurrentWeekLeaderboard() {
     const competitors = data.events?.[0]?.competitions?.[0]?.competitors || [];
 
     const getThruDisplay = (competitor) => {
+      if (competitor?.status?.thru != null) {
+        return competitor.status.thru >= 18 ? 'F' : competitor.status.thru.toString();
+      }
+
+      if (competitor?.status?.hole != null) {
+        return competitor.status.hole >= 18 ? 'F' : competitor.status.hole.toString();
+      }
+
+      if (competitor?.status?.displayThru) {
+        return competitor.status.displayThru;
+      }
+
       if (competitor?.thru != null) {
         return competitor.thru >= 18 ? 'F' : competitor.thru.toString();
       }
 
-      const detail = competitor?.status?.type?.detail || '';
+      const detail = competitor?.status?.displayValue || competitor?.status?.detail || competitor?.status?.type?.detail || '';
       const detailLower = detail.toLowerCase();
       const thruMatch = detailLower.match(/(?:thru|through)\s*(\d{1,2})/);
       if (thruMatch) return thruMatch[1];
 
-      const period = competitor?.status?.period;
-      if (period != null && period > 0 && period <= 18) {
-        return period.toString();
+      return '--';
+    };
+
+    const getTotalScoreDisplay = (competitor) => {
+      const statusDetail = competitor?.status?.detail || '';
+      const detailMatch = statusDetail.match(/^([+-]?\d+|E)\(\d+\)$/i);
+      if (detailMatch) {
+        return detailMatch[1].toUpperCase();
+      }
+
+      const scoreToParStat = (competitor?.statistics || []).find(s => s?.name === 'scoreToPar' && s?.displayValue != null);
+      if (scoreToParStat && scoreToParStat.displayValue !== '-') {
+        return scoreToParStat.displayValue;
+      }
+
+      if (competitor?.score?.displayValue && competitor.score.displayValue !== '-') {
+        return competitor.score.displayValue;
+      }
+
+      return '--';
+    };
+
+    const getTodayScoreDisplay = (competitor) => {
+      const todayDetail = competitor?.status?.todayDetail || '';
+      const todayDetailMatch = todayDetail.match(/^([+-]?\d+|E)\(\d+\)$/i);
+      if (todayDetailMatch) {
+        return todayDetailMatch[1].toUpperCase();
+      }
+
+      const lineWithScore = (competitor?.linescores || []).find(line => line?.displayValue && line.displayValue !== '-');
+      if (lineWithScore) {
+        return lineWithScore.displayValue;
       }
 
       return '--';
@@ -912,9 +985,9 @@ async function loadCurrentWeekLeaderboard() {
     competitors.forEach(c => {
       const nameLower = c.athlete.displayName.toLowerCase();
       let pos = c.status.position?.displayName || '--';
-      let total = c.score?.displayValue || '--';
+      let total = getTotalScoreDisplay(c);
       let thru = '--';
-      let today = '--';
+      let today = getTodayScoreDisplay(c);
       let posNum = Infinity;
       let isCut = false;
 
@@ -923,11 +996,6 @@ async function loadCurrentWeekLeaderboard() {
         thru = teeDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
       } else {
         thru = getThruDisplay(c);
-        if (c.linescores && c.linescores.length > 0) {
-          const lastRound = c.linescores[c.linescores.length - 1];
-          if (lastRound?.displayValue) today = lastRound.displayValue;
-        }
-
         const statusDetail = (c.status.type.detail || '').toLowerCase();
         if (statusDetail.includes('cut')) {
           pos = 'CUT';
@@ -1353,36 +1421,43 @@ function resetAllData() {
       '0-401811929': { golfer: 'Matt Fitzpatrick', earnings: null, position: null },
       '0-401811930': { golfer: 'Max Greyserman', earnings: null, position: null },
       '0-401811931': { golfer: 'Scottie Scheffler', earnings: null, position: null },
+      '0-401811932': { golfer: 'Chris Gotterup', earnings: null, position: null },
 
       '1-401811928': { golfer: 'Keegan Bradley', earnings: null, position: null },
       '1-401811929': { golfer: 'J.T. Poston', earnings: null, position: null },
       '1-401811930': { golfer: 'Wyndham Clark', earnings: null, position: null },
       '1-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+      '1-401811932': { golfer: 'Russell Henley', earnings: null, position: null },
 
       '2-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
       '2-401811929': { golfer: 'Robert MacIntyre', earnings: null, position: null },
       '2-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
       '2-401811931': { golfer: 'Maverick McNealy', earnings: null, position: null },
+      '2-401811932': { golfer: 'Si Woo Kim', earnings: null, position: null },
 
       '3-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
       '3-401811929': { golfer: 'Russell Henley', earnings: null, position: null },
       '3-401811930': { golfer: 'Ludvig Åberg', earnings: null, position: null },
       '3-401811931': { golfer: 'Xander Schauffele', earnings: null, position: null },
+      '3-401811932': { golfer: 'Scottie Scheffler', earnings: null, position: null },
 
       '4-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
       '4-401811929': { golfer: 'Sepp Straka', earnings: null, position: null },
       '4-401811930': { golfer: 'Jason Day', earnings: null, position: null },
       '4-401811931': { golfer: 'Jake Knapp', earnings: null, position: null },
+      '4-401811932': { golfer: 'Scottie Scheffler', earnings: null, position: null },
 
       '5-401811928': { golfer: 'Harry Hall', earnings: null, position: null },
       '5-401811929': { golfer: 'Si Woo Kim', earnings: null, position: null },
       '5-401811930': { golfer: 'Sam Stevens', earnings: null, position: null },
       '5-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+      '5-401811932': { golfer: 'Akshay Bhatia', earnings: null, position: null },
 
       '6-401811928': { golfer: 'Collin Morikawa', earnings: null, position: null },
       '6-401811929': { golfer: 'Patrick Cantlay', earnings: null, position: null },
       '6-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
-      '6-401811931': { golfer: 'Ben Griffin', earnings: null, position: null }
+      '6-401811931': { golfer: 'Ben Griffin', earnings: null, position: null },
+      '6-401811932': { golfer: 'Tommy Fleetwood', earnings: null, position: null }
     },
     scoredTournaments: []
   };
