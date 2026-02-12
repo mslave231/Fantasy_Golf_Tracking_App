@@ -1,4 +1,4 @@
-<!DOCTYPE html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -869,17 +869,25 @@ function renderStandings() {
   container.innerHTML = tableHTML;
 }
 
+function getMostRecentTournamentWithAnyPickId() {
+  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
+    const tId = TOURNAMENTS[i].id;
+    for (let pIdx = 0; pIdx < state.participants.length; pIdx++) {
+      const pick = state.picks[`${pIdx}-${tId}`];
+      if (pick && pick.golfer && pick.golfer.trim()) {
+        return tId;
+      }
+    }
+  }
+
+  return null;
+}
+
 function populateCurrentWeekSelect() {
   const select = document.getElementById('currentWeekSelect');
   select.innerHTML = '';
 
-  let latestId = null;
-  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
-    if (state.scoredTournaments.includes(TOURNAMENTS[i].id)) {
-      latestId = TOURNAMENTS[i].id;
-      break;
-    }
-  }
+  const latestPickedId = getMostRecentTournamentWithAnyPickId();
 
   TOURNAMENTS.forEach(t => {
     const opt = document.createElement('option');
@@ -889,7 +897,7 @@ function populateCurrentWeekSelect() {
     select.appendChild(opt);
   });
 
-  select.value = latestId || TOURNAMENTS[TOURNAMENTS.length - 1].id;
+  select.value = latestPickedId || TOURNAMENTS[TOURNAMENTS.length - 1].id;
 }
 
 async function loadCurrentWeekLeaderboard() {
@@ -958,13 +966,28 @@ async function loadCurrentWeekLeaderboard() {
       return '--';
     };
 
+    const getTodayScoreDisplay = (competitor) => {
+      const todayDetail = competitor?.status?.todayDetail || '';
+      const todayDetailMatch = todayDetail.match(/^([+-]?\d+|E)\(\d+\)$/i);
+      if (todayDetailMatch) {
+        return todayDetailMatch[1].toUpperCase();
+      }
+
+      const lineWithScore = (competitor?.linescores || []).find(line => line?.displayValue && line.displayValue !== '-');
+      if (lineWithScore) {
+        return lineWithScore.displayValue;
+      }
+
+      return '--';
+    };
+
     const golferMap = {};
     competitors.forEach(c => {
       const nameLower = c.athlete.displayName.toLowerCase();
       let pos = c.status.position?.displayName || '--';
       let total = getTotalScoreDisplay(c);
       let thru = '--';
-      let today = '--';
+      let today = getTodayScoreDisplay(c);
       let posNum = Infinity;
       let isCut = false;
 
@@ -973,11 +996,6 @@ async function loadCurrentWeekLeaderboard() {
         thru = teeDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
       } else {
         thru = getThruDisplay(c);
-        if (c.linescores && c.linescores.length > 0) {
-          const lastRound = c.linescores[c.linescores.length - 1];
-          if (lastRound?.displayValue) today = lastRound.displayValue;
-        }
-
         const statusDetail = (c.status.type.detail || '').toLowerCase();
         if (statusDetail.includes('cut')) {
           pos = 'CUT';
