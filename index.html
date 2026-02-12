@@ -99,6 +99,7 @@
     }
     .leaderboard-table .money { color: #2ecc71; }
     .leaderboard-table .back { color: #f39c12; font-weight: 600; }
+    .leaderboard-table .back.negative { color: #e74c3c; }
     .leaderboard-table .cuts, .current-week-table .cut { color: #e74c3c; font-weight: 600; }
     .leaderboard-table tr.leader {
       background: rgba(241, 196, 15, 0.1);
@@ -157,7 +158,6 @@
       padding: 10px 6px;
       font-weight: 600;
       font-size: 10px;
-      text-transform: uppercase;
       letter-spacing: 0.6px;
       color: #7f8c9b;
       border-bottom: 2px solid #2a3a5c;
@@ -179,6 +179,15 @@
       letter-spacing: 0;
       text-transform: none;
       margin-top: 3px;
+    }
+    #fantasyGrid thead th .th-date {
+      display: block;
+      font-size: 9px;
+      font-weight: 500;
+      color: #9fb0c2;
+      letter-spacing: 0;
+      text-transform: none;
+      margin-top: 2px;
     }
     #fantasyGrid thead th .th-purse.est { color: #7f8c9b; }
     #fantasyGrid thead th.major {
@@ -498,35 +507,70 @@
 <script>
 // ===== CONSTANTS =====
 const TOURNAMENTS = [
-  { id: "401811928", name: "Sony Open in Hawaii", abbr: "SON", isMajor: false, purse: "$9,100,000", purseEst: false },
-  { id: "401811929", name: "The American Express", abbr: "AMX", isMajor: false, purse: "$9,200,000", purseEst: false },
-  { id: "401811930", name: "Farmers Insurance Open", abbr: "FIO", isMajor: false, purse: "$9,600,000", purseEst: false },
-  { id: "401811931", name: "WM Phoenix Open", abbr: "PHX", isMajor: false, purse: "$9,600,000", purseEst: false },
-  { id: "401811932", name: "AT&T Pebble Beach Pro-Am", abbr: "PBP", isMajor: false, purse: "$20,000,000", purseEst: false },
-  { id: "401811933", name: "The Genesis Invitational", abbr: "GEN", isMajor: false, purse: "$20,000,000", purseEst: false },
-  { id: "401811934", name: "Cognizant Classic in The Palm Beaches", abbr: "COG", isMajor: false, purse: "$9,600,000", purseEst: false },
-  { id: "401811935", name: "Arnold Palmer Invitational", abbr: "API", isMajor: false, purse: "$20,000,000", purseEst: false },
-  { id: "401811936", name: "Puerto Rico Open", abbr: "PRO", isMajor: false, purse: "$4,000,000", purseEst: false },
-  { id: "401811937", name: "THE PLAYERS Championship", abbr: "TPC", isMajor: false, purse: "$25,000,000", purseEst: false },
-  { id: "401811938", name: "Valspar Championship", abbr: "VAL", isMajor: false, purse: "$9,100,000", purseEst: false },
-  { id: "401811939", name: "Texas Children's Houston Open", abbr: "HOU", isMajor: false, purse: "$9,900,000", purseEst: false },
-  { id: "401811940", name: "Valero Texas Open", abbr: "TXO", isMajor: false, purse: "$9,800,000", purseEst: false },
-  { id: "401811941", name: "Masters Tournament", abbr: "MAS", isMajor: true, purse: "$21,000,000", purseEst: true },
-  { id: "401811942", name: "RBC Heritage", abbr: "HER", isMajor: false, purse: "$20,000,000", purseEst: false },
-  { id: "401811943", name: "Zurich Classic of New Orleans", abbr: "ZUR", isMajor: false, purse: "$9,500,000", purseEst: false },
-  { id: "401811944", name: "Cadillac Championship", abbr: "CAD", isMajor: false, purse: "$20,000,000", purseEst: false },
-  { id: "401811945", name: "Truist Championship", abbr: "TRU", isMajor: false, purse: "$20,000,000", purseEst: false },
-  { id: "401811946", name: "ONEflight Myrtle Beach Classic", abbr: "MYR", isMajor: false, purse: "$4,000,000", purseEst: false },
-  { id: "401811947", name: "PGA Championship", abbr: "PGA", isMajor: true, purse: "$19,000,000", purseEst: true },
+  { id: "401811928", name: "Sony Open in Hawaii", dates: "Jan 15–18, 2026", abbr: "SON", isMajor: false, purse: "$9,100,000", purseEst: false },
+  { id: "401811929", name: "The American Express", dates: "Jan 22–25, 2026", abbr: "AMX", isMajor: false, purse: "$9,200,000", purseEst: false },
+  { id: "401811930", name: "Farmers Insurance Open", dates: "Jan 29–Feb 1, 2026", abbr: "FIO", isMajor: false, purse: "$9,600,000", purseEst: false },
+  { id: "401811931", name: "WM Phoenix Open", dates: "Feb 5–8, 2026", abbr: "PHX", isMajor: false, purse: "$9,600,000", purseEst: false },
+  { id: "401811932", name: "AT&T Pebble Beach Pro-Am", dates: "Feb 12–15, 2026", abbr: "PBP", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811933", name: "The Genesis Invitational", dates: "Feb 19–22, 2026", abbr: "GEN", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811934", name: "Cognizant Classic in The Palm Beaches", dates: "Feb 26–Mar 1, 2026", abbr: "COG", isMajor: false, purse: "$9,600,000", purseEst: false },
+  { id: "401811935", name: "Arnold Palmer Invitational", dates: "Mar 5–8, 2026", abbr: "API", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811936", name: "Puerto Rico Open", dates: "Mar 5–8, 2026", abbr: "PRO", isMajor: false, purse: "$4,000,000", purseEst: false },
+  { id: "401811937", name: "THE PLAYERS Championship", dates: "Mar 12–15, 2026", abbr: "TPC", isMajor: false, purse: "$25,000,000", purseEst: false },
+  { id: "401811938", name: "Valspar Championship", dates: "Mar 19–22, 2026", abbr: "VAL", isMajor: false, purse: "$9,100,000", purseEst: false },
+  { id: "401811939", name: "Texas Children's Houston Open", dates: "Mar 26–29, 2026", abbr: "HOU", isMajor: false, purse: "$9,900,000", purseEst: false },
+  { id: "401811940", name: "Valero Texas Open", dates: "Apr 2–5, 2026", abbr: "TXO", isMajor: false, purse: "$9,800,000", purseEst: false },
+  { id: "401811941", name: "Masters Tournament", dates: "Apr 9–12, 2026", abbr: "MAS", isMajor: true, purse: "$21,000,000", purseEst: true },
+  { id: "401811942", name: "RBC Heritage", dates: "Apr 16–19, 2026", abbr: "HER", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811943", name: "Zurich Classic of New Orleans", dates: "Apr 23–26, 2026", abbr: "ZUR", isMajor: false, purse: "$9,500,000", purseEst: false },
+  { id: "401811944", name: "Cadillac Championship", dates: "Apr 30–May 3, 2026", abbr: "CAD", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811945", name: "Truist Championship", dates: "May 7–10, 2026", abbr: "TRU", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811946", name: "ONEflight Myrtle Beach Classic", dates: "May 7–10, 2026", abbr: "MYR", isMajor: false, purse: "$4,000,000", purseEst: false },
+  { id: "401811947", name: "PGA Championship", dates: "May 14–17, 2026", abbr: "PGA", isMajor: true, purse: "$19,000,000", purseEst: true },
 ];
 
 const STORAGE_KEY = 'fantasyGolfLeague';
-const DATA_VERSION = '2026-v1';
+const DATA_VERSION = '2026-v2';
 
 // ===== STATE =====
 let state = {
-  participants: ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5', 'Player 6', 'Player 7'],
-  picks: {},
+  participants: ['Andrew Vlosak', 'Van Ainalakis', 'Joe Vlosak', 'Ben Wilson', 'Kevin Fleck', 'Bryan Stresney', 'Matt Slavik'],
+  picks: {
+    '0-401811928': { golfer: 'Si Woo Kim', earnings: null, position: null },
+    '0-401811929': { golfer: 'Matt Fitzpatrick', earnings: null, position: null },
+    '0-401811930': { golfer: 'Max Greyserman', earnings: null, position: null },
+    '0-401811931': { golfer: 'Scottie Scheffler', earnings: null, position: null },
+
+    '1-401811928': { golfer: 'Keegan Bradley', earnings: null, position: null },
+    '1-401811929': { golfer: 'J.T. Poston', earnings: null, position: null },
+    '1-401811930': { golfer: 'Wyndham Clark', earnings: null, position: null },
+    '1-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+
+    '2-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
+    '2-401811929': { golfer: 'Robert MacIntyre', earnings: null, position: null },
+    '2-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
+    '2-401811931': { golfer: 'Maverick McNealy', earnings: null, position: null },
+
+    '3-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
+    '3-401811929': { golfer: 'Russell Henley', earnings: null, position: null },
+    '3-401811930': { golfer: 'Ludvig Åberg', earnings: null, position: null },
+    '3-401811931': { golfer: 'Xander Schauffele', earnings: null, position: null },
+
+    '4-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
+    '4-401811929': { golfer: 'Sepp Straka', earnings: null, position: null },
+    '4-401811930': { golfer: 'Jason Day', earnings: null, position: null },
+    '4-401811931': { golfer: 'Jake Knapp', earnings: null, position: null },
+
+    '5-401811928': { golfer: 'Harry Hall', earnings: null, position: null },
+    '5-401811929': { golfer: 'Si Woo Kim', earnings: null, position: null },
+    '5-401811930': { golfer: 'Sam Stevens', earnings: null, position: null },
+    '5-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+
+    '6-401811928': { golfer: 'Collin Morikawa', earnings: null, position: null },
+    '6-401811929': { golfer: 'Patrick Cantlay', earnings: null, position: null },
+    '6-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
+    '6-401811931': { golfer: 'Ben Griffin', earnings: null, position: null }
+  },
   scoredTournaments: []
 };
 
@@ -560,6 +604,11 @@ function formatMoney(amount) {
   if (amount == null) return '-';
   if (amount === 0) return '$0';
   return '$' + amount.toLocaleString('en-US');
+}
+
+function formatBackMoney(amount) {
+  if (amount == null || amount === 0) return '-';
+  return `(${formatMoney(amount)})`;
 }
 
 function parseEarnings(str) {
@@ -599,8 +648,14 @@ function renderHeader() {
     th.dataset.tid = t.id;
     th.title = t.name;
 
-    const nameSpan = document.createTextNode(t.abbr);
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = t.name;
     th.appendChild(nameSpan);
+
+    const dateSpan = document.createElement('span');
+    dateSpan.className = 'th-date';
+    dateSpan.textContent = t.dates || '';
+    th.appendChild(dateSpan);
 
     const purseSpan = document.createElement('span');
     purseSpan.className = 'th-purse' + (t.purseEst ? ' est' : '');
@@ -771,7 +826,9 @@ function renderStandings() {
 
   participantStats.forEach(s => {
     const isLeader = s.totalEarnings === leaderTotal;
-    const back = isLeader ? '-' : `- ${formatMoney(leaderTotal - s.totalEarnings)}`;
+    const backAmount = leaderTotal - s.totalEarnings;
+    const back = isLeader ? '-' : formatBackMoney(backAmount);
+    const backClass = isLeader ? 'back' : 'back negative';
     const cutsDisplay = s.missedCuts === 0 ? '-' : s.missedCuts;
 
     tableHTML += `<tr${isLeader ? ' class="leader"' : ''}>`;
@@ -779,7 +836,7 @@ function renderStandings() {
     tableHTML += `<td class="name">${s.name}</td>`;
     tableHTML += `<td class="money">${formatMoney(s.lastEarnings)}</td>`;
     tableHTML += `<td class="money">${formatMoney(s.totalEarnings)}</td>`;
-    tableHTML += `<td class="back">${back}</td>`;
+    tableHTML += `<td class="${backClass}">${back}</td>`;
     tableHTML += `<td class="cuts">${cutsDisplay}</td>`;
     tableHTML += '</tr>';
   });
@@ -1270,8 +1327,43 @@ function resetAllData() {
   if (!confirm('Are you sure you want to reset ALL data? This cannot be undone.')) return;
   if (!confirm('Really delete all picks and scores?')) return;
   state = {
-    participants: ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5', 'Player 6', 'Player 7'],
-    picks: {},
+    participants: ['Andrew Vlosak', 'Van Ainalakis', 'Joe Vlosak', 'Ben Wilson', 'Kevin Fleck', 'Bryan Stresney', 'Matt Slavik'],
+    picks: {
+      '0-401811928': { golfer: 'Si Woo Kim', earnings: null, position: null },
+      '0-401811929': { golfer: 'Matt Fitzpatrick', earnings: null, position: null },
+      '0-401811930': { golfer: 'Max Greyserman', earnings: null, position: null },
+      '0-401811931': { golfer: 'Scottie Scheffler', earnings: null, position: null },
+
+      '1-401811928': { golfer: 'Keegan Bradley', earnings: null, position: null },
+      '1-401811929': { golfer: 'J.T. Poston', earnings: null, position: null },
+      '1-401811930': { golfer: 'Wyndham Clark', earnings: null, position: null },
+      '1-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+
+      '2-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
+      '2-401811929': { golfer: 'Robert MacIntyre', earnings: null, position: null },
+      '2-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
+      '2-401811931': { golfer: 'Maverick McNealy', earnings: null, position: null },
+
+      '3-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
+      '3-401811929': { golfer: 'Russell Henley', earnings: null, position: null },
+      '3-401811930': { golfer: 'Ludvig Åberg', earnings: null, position: null },
+      '3-401811931': { golfer: 'Xander Schauffele', earnings: null, position: null },
+
+      '4-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
+      '4-401811929': { golfer: 'Sepp Straka', earnings: null, position: null },
+      '4-401811930': { golfer: 'Jason Day', earnings: null, position: null },
+      '4-401811931': { golfer: 'Jake Knapp', earnings: null, position: null },
+
+      '5-401811928': { golfer: 'Harry Hall', earnings: null, position: null },
+      '5-401811929': { golfer: 'Si Woo Kim', earnings: null, position: null },
+      '5-401811930': { golfer: 'Sam Stevens', earnings: null, position: null },
+      '5-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+
+      '6-401811928': { golfer: 'Collin Morikawa', earnings: null, position: null },
+      '6-401811929': { golfer: 'Patrick Cantlay', earnings: null, position: null },
+      '6-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
+      '6-401811931': { golfer: 'Ben Griffin', earnings: null, position: null }
+    },
     scoredTournaments: []
   };
   saveState();
