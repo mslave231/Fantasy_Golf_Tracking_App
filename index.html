@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -530,7 +530,7 @@ const TOURNAMENTS = [
 ];
 
 const STORAGE_KEY = 'fantasyGolfLeague';
-const DATA_VERSION = '2026-v2';
+const DATA_VERSION = '2026-v3';
 
 // ===== STATE =====
 let state = {
@@ -540,36 +540,43 @@ let state = {
     '0-401811929': { golfer: 'Matt Fitzpatrick', earnings: null, position: null },
     '0-401811930': { golfer: 'Max Greyserman', earnings: null, position: null },
     '0-401811931': { golfer: 'Scottie Scheffler', earnings: null, position: null },
+    '0-401811932': { golfer: 'Chris Gotterup', earnings: null, position: null },
 
     '1-401811928': { golfer: 'Keegan Bradley', earnings: null, position: null },
     '1-401811929': { golfer: 'J.T. Poston', earnings: null, position: null },
     '1-401811930': { golfer: 'Wyndham Clark', earnings: null, position: null },
     '1-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+    '1-401811932': { golfer: 'Russell Henley', earnings: null, position: null },
 
     '2-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
     '2-401811929': { golfer: 'Robert MacIntyre', earnings: null, position: null },
     '2-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
     '2-401811931': { golfer: 'Maverick McNealy', earnings: null, position: null },
+    '2-401811932': { golfer: 'Si Woo Kim', earnings: null, position: null },
 
     '3-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
     '3-401811929': { golfer: 'Russell Henley', earnings: null, position: null },
     '3-401811930': { golfer: 'Ludvig Åberg', earnings: null, position: null },
     '3-401811931': { golfer: 'Xander Schauffele', earnings: null, position: null },
+    '3-401811932': { golfer: 'Scottie Scheffler', earnings: null, position: null },
 
     '4-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
     '4-401811929': { golfer: 'Sepp Straka', earnings: null, position: null },
     '4-401811930': { golfer: 'Jason Day', earnings: null, position: null },
     '4-401811931': { golfer: 'Jake Knapp', earnings: null, position: null },
+    '4-401811932': { golfer: 'Scottie Scheffler', earnings: null, position: null },
 
     '5-401811928': { golfer: 'Harry Hall', earnings: null, position: null },
     '5-401811929': { golfer: 'Si Woo Kim', earnings: null, position: null },
     '5-401811930': { golfer: 'Sam Stevens', earnings: null, position: null },
     '5-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+    '5-401811932': { golfer: 'Akshay Bhatia', earnings: null, position: null },
 
     '6-401811928': { golfer: 'Collin Morikawa', earnings: null, position: null },
     '6-401811929': { golfer: 'Patrick Cantlay', earnings: null, position: null },
     '6-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
-    '6-401811931': { golfer: 'Ben Griffin', earnings: null, position: null }
+    '6-401811931': { golfer: 'Ben Griffin', earnings: null, position: null },
+    '6-401811932': { golfer: 'Tommy Fleetwood', earnings: null, position: null }
   },
   scoredTournaments: []
 };
@@ -818,15 +825,18 @@ function renderStandings() {
 
   const leaderTotal = participantStats[0].totalEarnings;
 
-  const selectedTid = document.getElementById('lastEventSelect').value;
+  const lastEventSelect = document.getElementById('lastEventSelect');
+  let selectedTid = lastEventSelect.value;
+  if (!selectedTid) {
+    selectedTid = getMostRecentPositiveEarningsTournamentId() || TOURNAMENTS[TOURNAMENTS.length - 1].id;
+    lastEventSelect.value = selectedTid;
+  }
   const selectedTournament = TOURNAMENTS.find(t => t.id === selectedTid);
 
   participantStats.forEach(s => {
-    if (selectedTid) {
-      const key = `${s.pIdx}-${selectedTid}`;
-      const pick = state.picks[key];
-      s.lastEarnings = (pick && pick.earnings != null) ? pick.earnings : 0;
-    }
+    const key = `${s.pIdx}-${selectedTid}`;
+    const pick = state.picks[key];
+    s.lastEarnings = (pick && pick.earnings != null) ? pick.earnings : 0;
   });
 
   let tableHTML = '<table class="leaderboard-table"><thead><tr>';
@@ -1393,36 +1403,43 @@ function resetAllData() {
       '0-401811929': { golfer: 'Matt Fitzpatrick', earnings: null, position: null },
       '0-401811930': { golfer: 'Max Greyserman', earnings: null, position: null },
       '0-401811931': { golfer: 'Scottie Scheffler', earnings: null, position: null },
+      '0-401811932': { golfer: 'Chris Gotterup', earnings: null, position: null },
 
       '1-401811928': { golfer: 'Keegan Bradley', earnings: null, position: null },
       '1-401811929': { golfer: 'J.T. Poston', earnings: null, position: null },
       '1-401811930': { golfer: 'Wyndham Clark', earnings: null, position: null },
       '1-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+      '1-401811932': { golfer: 'Russell Henley', earnings: null, position: null },
 
       '2-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
       '2-401811929': { golfer: 'Robert MacIntyre', earnings: null, position: null },
       '2-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
       '2-401811931': { golfer: 'Maverick McNealy', earnings: null, position: null },
+      '2-401811932': { golfer: 'Si Woo Kim', earnings: null, position: null },
 
       '3-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
       '3-401811929': { golfer: 'Russell Henley', earnings: null, position: null },
       '3-401811930': { golfer: 'Ludvig Åberg', earnings: null, position: null },
       '3-401811931': { golfer: 'Xander Schauffele', earnings: null, position: null },
+      '3-401811932': { golfer: 'Scottie Scheffler', earnings: null, position: null },
 
       '4-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
       '4-401811929': { golfer: 'Sepp Straka', earnings: null, position: null },
       '4-401811930': { golfer: 'Jason Day', earnings: null, position: null },
       '4-401811931': { golfer: 'Jake Knapp', earnings: null, position: null },
+      '4-401811932': { golfer: 'Scottie Scheffler', earnings: null, position: null },
 
       '5-401811928': { golfer: 'Harry Hall', earnings: null, position: null },
       '5-401811929': { golfer: 'Si Woo Kim', earnings: null, position: null },
       '5-401811930': { golfer: 'Sam Stevens', earnings: null, position: null },
       '5-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+      '5-401811932': { golfer: 'Akshay Bhatia', earnings: null, position: null },
 
       '6-401811928': { golfer: 'Collin Morikawa', earnings: null, position: null },
       '6-401811929': { golfer: 'Patrick Cantlay', earnings: null, position: null },
       '6-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
-      '6-401811931': { golfer: 'Ben Griffin', earnings: null, position: null }
+      '6-401811931': { golfer: 'Ben Griffin', earnings: null, position: null },
+      '6-401811932': { golfer: 'Tommy Fleetwood', earnings: null, position: null }
     },
     scoredTournaments: []
   };
