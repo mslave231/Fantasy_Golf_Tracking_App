@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -529,6 +529,19 @@ const TOURNAMENTS = [
   { id: "401811947", name: "PGA Championship", dates: "May 14–17, 2026", abbr: "PGA", isMajor: true, purse: "$19,000,000", purseEst: true },
 ];
 
+
+const PEBBLE_PROAM_2026_PAYOUTS = [
+  3600000, 2160000, 1360000, 960000, 795000, 715000, 665000, 615000, 575000, 535000,
+  495000, 455000, 415000, 375000, 352000, 332000, 312000, 292000, 272000, 252000,
+  232000, 217000, 202000, 187000, 172000, 158000, 150000, 143000, 137000, 131000,
+  125000, 119000, 114000, 109000, 104000, 99000, 94000, 89000, 84000, 80000,
+  76000, 72000, 68000, 64000, 60000, 57000, 54000, 52000, 50000, 48000,
+  47000, 46000, 45000, 44000, 43000, 42000, 41000, 40000, 39500, 39000,
+  38500, 38000, 37500, 37000, 36500, 36000, 35500, 35000, 34750, 34500,
+  34250, 34000, 33750, 33500, 33250, 33000, 32750, 32500, 32250, 32000
+];
+const PEBBLE_PROAM_2026_PURSE = 20000000;
+
 const STORAGE_KEY = 'fantasyGolfLeague';
 const DATA_VERSION = '2026-v3';
 
@@ -981,6 +994,55 @@ async function loadCurrentWeekLeaderboard() {
       return '--';
     };
 
+    const getNumericPosition = (positionDisplay) => {
+      if (!positionDisplay) return null;
+      const match = positionDisplay.match(/^(?:T)?(\d{1,2})$/i);
+      if (!match) return null;
+      return parseInt(match[1], 10);
+    };
+
+    const parsePurseAmount = (purseText) => {
+      if (!purseText) return 0;
+      return parseInt(purseText.replace(/[$,]/g, ''), 10) || 0;
+    };
+
+    const payoutScale = parsePurseAmount(tournament?.purse) / PEBBLE_PROAM_2026_PURSE;
+    const getRankPayout = (rank) => {
+      if (!Number.isInteger(rank) || rank < 1 || rank > PEBBLE_PROAM_2026_PAYOUTS.length) return 0;
+      const base = PEBBLE_PROAM_2026_PAYOUTS[rank - 1];
+      const scaled = Math.round(base * (payoutScale || 1));
+      return Math.max(0, scaled);
+    };
+
+    const tieCountsByPosition = {};
+    competitors.forEach(c => {
+      const statusDetail = (c?.status?.type?.detail || '').toLowerCase();
+      if (statusDetail.includes('cut') || statusDetail.includes('withdrawn') || statusDetail.includes('disqualified')) return;
+      const posDisplay = c?.status?.position?.displayName || '';
+      const posNum = getNumericPosition(posDisplay);
+      if (!posNum) return;
+      tieCountsByPosition[posNum] = (tieCountsByPosition[posNum] || 0) + 1;
+    });
+
+    const getEstimatedPayout = (positionDisplay) => {
+      const posNum = getNumericPosition(positionDisplay);
+      if (!posNum) return '--';
+
+      const tieCount = tieCountsByPosition[posNum] || 1;
+      let total = 0;
+      let slots = 0;
+
+      for (let rank = posNum; rank < posNum + tieCount; rank++) {
+        const payout = getRankPayout(rank);
+        if (payout <= 0) continue;
+        total += payout;
+        slots += 1;
+      }
+
+      if (!slots) return '--';
+      return formatMoney(Math.round(total / slots));
+    };
+
     const golferMap = {};
     competitors.forEach(c => {
       const nameLower = c.athlete.displayName.toLowerCase();
@@ -1028,6 +1090,7 @@ async function loadCurrentWeekLeaderboard() {
         total,
         thru,
         today,
+        estimatedPayout: getEstimatedPayout(pos),
         posNum,
         isCut
       };
@@ -1043,6 +1106,7 @@ async function loadCurrentWeekLeaderboard() {
         total: '--',
         thru: '--',
         today: '--',
+        estimatedPayout: '--',
         posNum: Infinity,
         isCut: false
       };
@@ -1069,6 +1133,7 @@ async function loadCurrentWeekLeaderboard() {
           entry.total = result.total;
           entry.thru = result.thru;
           entry.today = result.today;
+          entry.estimatedPayout = result.estimatedPayout;
           entry.posNum = result.posNum;
           entry.isCut = result.isCut;
         } else {
@@ -1093,6 +1158,7 @@ async function loadCurrentWeekLeaderboard() {
     tableHTML += '<th>Total</th>';
     tableHTML += '<th>Thru</th>';
     tableHTML += '<th>Today</th>';
+    tableHTML += '<th>Est. Payout</th>';
     tableHTML += '</tr></thead><tbody>';
 
     entries.forEach(e => {
@@ -1105,6 +1171,7 @@ async function loadCurrentWeekLeaderboard() {
       tableHTML += `<td class="total">${e.total}</td>`;
       tableHTML += `<td class="thru">${e.thru}</td>`;
       tableHTML += `<td class="today">${e.today}</td>`;
+      tableHTML += `<td class="total">${e.estimatedPayout}</td>`;
       tableHTML += `</tr>`;
     });
 
