@@ -424,7 +424,7 @@
   <div class="standings-panel">
     <div class="standings-title">Season Leaderboard</div>
     <div class="last-event-control">
-      <span>Event column:</span>
+      <span>Latest Event:</span>
       <select id="lastEventSelect" onchange="renderStandings()"></select>
     </div>
     <div id="standingsContainer"></div>
@@ -627,9 +627,9 @@ function getOrdinal(n) {
 function renderAll() {
   renderHeader();
   renderGrid();
-  renderStandings();
   populateTournamentSelect();
   populateLastEventSelect();
+  renderStandings();
   populateCurrentWeekSelect();
   loadCurrentWeekLeaderboard();
 }
@@ -745,13 +745,7 @@ function populateLastEventSelect() {
   const select = document.getElementById('lastEventSelect');
   select.innerHTML = '';
 
-  let latestId = null;
-  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
-    if (state.scoredTournaments.includes(TOURNAMENTS[i].id)) {
-      latestId = TOURNAMENTS[i].id;
-      break;
-    }
-  }
+  const latestId = getMostRecentPositiveEarningsTournamentId();
 
   TOURNAMENTS.forEach(t => {
     const opt = document.createElement('option');
@@ -762,6 +756,26 @@ function populateLastEventSelect() {
   });
 
   select.value = latestId || TOURNAMENTS[TOURNAMENTS.length - 1].id;
+}
+
+function getMostRecentPositiveEarningsTournamentId() {
+  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
+    const tId = TOURNAMENTS[i].id;
+    for (let pIdx = 0; pIdx < state.participants.length; pIdx++) {
+      const pick = state.picks[`${pIdx}-${tId}`];
+      if (pick && pick.earnings != null && pick.earnings > 0) {
+        return tId;
+      }
+    }
+  }
+
+  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
+    if (state.scoredTournaments.includes(TOURNAMENTS[i].id)) {
+      return TOURNAMENTS[i].id;
+    }
+  }
+
+  return null;
 }
 
 function renderStandings() {
@@ -818,7 +832,7 @@ function renderStandings() {
   let tableHTML = '<table class="leaderboard-table"><thead><tr>';
   tableHTML += '<th style="text-align:center;">Rank</th>';
   tableHTML += '<th style="text-align:left;">Player</th>';
-  tableHTML += `<th style="text-align:center;">Last Event${selectedTournament ? ' (' + selectedTournament.abbr + ')' : ''}</th>`;
+  tableHTML += `<th style="text-align:center;">Latest Event${selectedTournament ? ' (' + selectedTournament.abbr + ')' : ''}</th>`;
   tableHTML += '<th style="text-align:center;">Total</th>';
   tableHTML += '<th style="text-align:center;">Back</th>';
   tableHTML += '<th style="text-align:center;">Missed Cuts</th>';
@@ -912,20 +926,26 @@ async function loadCurrentWeekLeaderboard() {
       const thruMatch = detailLower.match(/(?:thru|through)\s*(\d{1,2})/);
       if (thruMatch) return thruMatch[1];
 
-      const period = competitor?.status?.period;
-      if (period != null && period > 0 && period <= 18) {
-        return period.toString();
-      }
-
       return '--';
     };
 
     const getTotalScoreDisplay = (competitor) => {
+      const statusDetail = competitor?.status?.detail || '';
+      const detailMatch = statusDetail.match(/^([+-]?\d+|E)\(\d+\)$/i);
+      if (detailMatch) {
+        return detailMatch[1].toUpperCase();
+      }
+
       const scoreToParStat = (competitor?.statistics || []).find(s => s?.name === 'scoreToPar' && s?.displayValue != null);
       if (scoreToParStat && scoreToParStat.displayValue !== '-') {
         return scoreToParStat.displayValue;
       }
-      return competitor?.score?.displayValue || '--';
+
+      if (competitor?.score?.displayValue && competitor.score.displayValue !== '-') {
+        return competitor.score.displayValue;
+      }
+
+      return '--';
     };
 
     const golferMap = {};
