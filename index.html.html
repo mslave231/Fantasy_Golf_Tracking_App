@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fantasy Golf League Tracker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a1628;
+      color: #e0e6ed;
+      min-height: 100vh;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: linear-gradient(135deg, #1a2a4a 0%, #0d1b30 100%);
+      border-bottom: 3px solid #2ecc71;
+      padding: 20px 32px;
+      text-align: center;
+    }
+    .header h1 { font-size: 26px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+    .header .subtitle { font-size: 13px; color: #7f8c9b; margin-top: 4px; }
+
+    /* ===== PANELS ===== */
+    .standings-panel, .current-week-panel {
+      background: #0f1e36;
+      border-bottom: 1px solid #1a2a4a;
+      padding: 14px 24px;
+    }
+    .standings-title, .current-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #7f8c9b;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .last-event-control, .current-event-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: #7f8c9b;
+      flex-wrap: wrap;
+    }
+    .last-event-control select, .current-event-control select {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #2a3a5c;
+      background: #162240;
+      color: #e0e6ed;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .refresh-btn {
+      padding: 6px 14px;
+      background: #2ecc71;
+      color: #0a1628;
+      border: none;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .refresh-btn:hover { background: #27ae60; }
+
+    /* ===== LEADERBOARD TABLES ===== */
+    .leaderboard-table, .current-week-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    .leaderboard-table th, .current-week-table th {
+      background: #162240;
+      padding: 8px 6px;
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #7f8c9b;
+      border-bottom: 2px solid #2a3a5c;
+    }
+    .leaderboard-table td, .current-week-table td {
+      padding: 10px 6px;
+      border-bottom: 1px solid #1a2a4a;
+    }
+    .leaderboard-table tbody tr:hover, .current-week-table tbody tr:hover {
+      background: rgba(255,255,255,0.03);
+    }
+    .leaderboard-table .rank { text-align: center; font-weight: 700; width: 60px; }
+    .leaderboard-table .name { text-align: left; font-weight: 600; color: #fff; }
+    .leaderboard-table .money, .leaderboard-table .back, .leaderboard-table .cuts,
+    .current-week-table .pos, .current-week-table .total, .current-week-table .thru, .current-week-table .today {
+      text-align: center; font-weight: 700;
+    }
+    .leaderboard-table .money { color: #2ecc71; }
+    .leaderboard-table .back { color: #f39c12; font-weight: 600; }
+    .leaderboard-table .cuts, .current-week-table .cut { color: #e74c3c; font-weight: 600; }
+    .leaderboard-table tr.leader {
+      background: rgba(241, 196, 15, 0.1);
+    }
+    .leaderboard-table tr.leader .rank, .leaderboard-table tr.leader .name {
+      color: #f1c40f; font-weight: 700;
+    }
+    .current-week-table .player, .current-week-table .golfer {
+      text-align: left; font-weight: 600; color: #fff;
+    }
+    .current-week-table .cut-row { opacity: 0.7; }
+
+    /* ===== CONTROLS BAR ===== */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 24px;
+      background: #0d1b30;
+      border-bottom: 1px solid #1a2a4a;
+      flex-wrap: wrap;
+    }
+    .controls select, .controls button {
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid #2a3a5c;
+      background: #162240;
+      color: #e0e6ed;
+      font-size: 13px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .controls select:focus, .controls button:hover { border-color: #2ecc71; }
+    .btn-score { background: #2ecc71 !important; color: #0a1628 !important; font-weight: 700; border-color: #27ae60 !important; }
+    .btn-score:hover { background: #27ae60 !important; }
+    .btn-danger { border-color: #e74c3c !important; color: #e74c3c !important; }
+    .btn-danger:hover { background: rgba(231, 76, 60, 0.15) !important; }
+    .controls-spacer { flex: 1; }
+    .score-status { font-size: 12px; color: #7f8c9b; margin-left: 6px; }
+
+    /* ===== GRID ===== */
+    .grid-wrapper {
+      overflow-x: auto;
+      margin: 0;
+      position: relative;
+    }
+    #fantasyGrid {
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13px;
+      min-width: 100%;
+    }
+    #fantasyGrid thead th {
+      background: #162240;
+      padding: 10px 6px;
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #7f8c9b;
+      border-bottom: 2px solid #2a3a5c;
+      border-right: 1px solid #1a2a4a;
+      text-align: center;
+      white-space: normal;
+      min-width: 110px;
+      max-width: 130px;
+      line-height: 1.4;
+      position: sticky;
+      top: 0;
+      z-index: 12;
+    }
+    #fantasyGrid thead th .th-purse {
+      display: block;
+      font-size: 9px;
+      font-weight: 400;
+      color: #2ecc71;
+      letter-spacing: 0;
+      text-transform: none;
+      margin-top: 3px;
+    }
+    #fantasyGrid thead th .th-purse.est { color: #7f8c9b; }
+    #fantasyGrid thead th.major {
+      border-top: 3px solid #f1c40f;
+      color: #f1c40f;
+    }
+    #fantasyGrid thead th.major .th-purse { color: #d4ac0d; }
+    #fantasyGrid thead th.major .th-purse.est { color: #7f8c9b; }
+    #fantasyGrid thead th.scored::after {
+      content: ' \2713';
+      color: #2ecc71;
+      font-size: 11px;
+    }
+    #fantasyGrid thead th.sticky-col {
+      position: sticky;
+      left: 0;
+      z-index: 15;
+      background: #0f1e36;
+      min-width: 140px;
+      text-align: left;
+      padding-left: 14px;
+    }
+    #fantasyGrid thead th.sticky-right {
+      position: sticky;
+      right: 0;
+      z-index: 15;
+      background: #0f1e36;
+      min-width: 100px;
+    }
+    #fantasyGrid tbody td {
+      padding: 0;
+      border-bottom: 1px solid #1a2a4a;
+      border-right: 1px solid #1a2a4a;
+      vertical-align: middle;
+    }
+    #fantasyGrid tbody td.sticky-col {
+      position: sticky;
+      left: 0;
+      z-index: 5;
+      background: #0f1e36;
+      padding: 10px 14px;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      min-width: 140px;
+      border-right: 2px solid #2a3a5c;
+    }
+    #fantasyGrid tbody td.sticky-col:hover { background: #162240; }
+    #fantasyGrid tbody td.sticky-right {
+      position: sticky;
+      right: 0;
+      z-index: 5;
+      background: #0f1e36;
+      padding: 10px 8px;
+      text-align: center;
+      font-weight: 700;
+      color: #2ecc71;
+      font-size: 14px;
+      border-left: 2px solid #2a3a5c;
+      min-width: 100px;
+    }
+
+    /* Pick cells */
+    .pick-cell {
+      min-width: 110px;
+      max-width: 130px;
+      text-align: center;
+      cursor: pointer;
+      padding: 6px 5px;
+      transition: background 0.15s;
+      height: 52px;
+    }
+    .pick-cell:hover { background: rgba(46, 204, 113, 0.07); }
+    .pick-cell.empty { color: #2a3a5c; font-size: 18px; line-height: 40px; }
+    .pick-cell.empty:hover { color: #2ecc71; }
+    .pick-golfer {
+      font-size: 11px;
+      color: #c0c8d0;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 120px;
+      margin: 0 auto;
+    }
+    .pick-position { font-size: 10px; color: #f39c12; font-weight: 600; margin-top: 1px; }
+    .pick-earnings { font-size: 11px; color: #2ecc71; font-weight: 700; margin-top: 1px; }
+    .pick-earnings.zero { color: #7f8c9b; }
+    .pick-not-found { font-size: 9px; color: #e74c3c; margin-top: 1px; }
+
+    /* Row hover */
+    #fantasyGrid tbody tr:hover td:not(.sticky-col):not(.sticky-right) {
+      background: rgba(255,255,255,0.02);
+    }
+
+    /* ===== MODALS ===== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #162240;
+      border: 1px solid #2a3a5c;
+      border-radius: 10px;
+      padding: 24px;
+      max-width: 480px;
+      width: 92%;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+    .modal h2 { font-size: 16px; color: #fff; margin-bottom: 4px; }
+    .modal .modal-sub { font-size: 12px; color: #7f8c9b; margin-bottom: 16px; }
+    .modal label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #7f8c9b;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .modal input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 6px;
+      border: 1px solid #2a3a5c;
+      background: #0f1e36;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .modal input[type="text"]:focus { border-color: #2ecc71; }
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .modal-actions button {
+      padding: 8px 20px;
+      border-radius: 6px;
+      border: 1px solid #2a3a5c;
+      background: #0f1e36;
+      color: #e0e6ed;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .modal-actions button:hover { border-color: #2ecc71; }
+    .modal-actions .btn-primary {
+      background: #2ecc71;
+      color: #0a1628;
+      font-weight: 700;
+      border-color: #27ae60;
+    }
+    .modal-actions .btn-primary:hover { background: #27ae60; }
+    .modal-actions .btn-clear { color: #e74c3c; border-color: #e74c3c; }
+    .validation-msg { color: #e74c3c; font-size: 12px; margin-top: 8px; display: none; }
+    .used-golfers { margin-top: 14px; max-height: 150px; overflow-y: auto; }
+    .used-golfers-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #7f8c9b;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .used-golfers ul {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .used-golfers li {
+      background: #0f1e36;
+      border: 1px solid #2a3a5c;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+      color: #a0aab5;
+    }
+
+    /* Score results table */
+    .score-results-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    .score-results-table th {
+      text-align: left;
+      padding: 8px 6px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #7f8c9b;
+      border-bottom: 1px solid #2a3a5c;
+    }
+    .score-results-table td {
+      padding: 6px 6px;
+      border-bottom: 1px solid #1a2a4a;
+    }
+    .score-results-table tr.not-found td { color: #e74c3c; opacity: 0.7; }
+    .score-results-table .earnings { color: #2ecc71; font-weight: 600; text-align: right; }
+    .score-results-table th.right { text-align: right; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .controls { flex-direction: column; align-items: stretch; }
+      .controls-spacer { display: none; }
+      .header h1 { font-size: 20px; }
+      .last-event-control, .current-event-control { flex-direction: column; align-items: flex-start; }
+    }
+
+    /* Hidden file input */
+    #importInput { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>Fantasy Golf League Tracker</h1>
+    <div class="subtitle">2026 PGA Tour Season &mdash; Sony Open through PGA Championship</div>
+  </div>
+
+  <!-- SEASON STANDINGS -->
+  <div class="standings-panel">
+    <div class="standings-title">Season Leaderboard</div>
+    <div class="last-event-control">
+      <span>Event column:</span>
+      <select id="lastEventSelect" onchange="renderStandings()"></select>
+    </div>
+    <div id="standingsContainer"></div>
+  </div>
+
+  <!-- CURRENT WEEK LIVE LEADERBOARD -->
+  <div class="current-week-panel">
+    <div class="current-title">Current Week Live Leaderboard</div>
+    <div class="current-event-control">
+      <span>Event:</span>
+      <select id="currentWeekSelect"></select>
+      <button class="refresh-btn" onclick="loadCurrentWeekLeaderboard()">Refresh Live</button>
+      <span id="currentWeekStatus" style="color:#7f8c9b;"></span>
+    </div>
+    <div id="currentWeekContainer"><span style="color:#7f8c9b;">Select an event and click Refresh Live to load.</span></div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <select id="tournamentSelect"></select>
+    <button class="btn-score" onclick="handleScoreTournament()">Fetch Scores</button>
+    <span class="score-status" id="scoreStatus"></span>
+    <div class="controls-spacer"></div>
+    <button onclick="exportData()">Export JSON</button>
+    <button onclick="document.getElementById('importInput').click()">Import JSON</button>
+    <input type="file" id="importInput" accept=".json" onchange="importData(event)">
+    <button class="btn-danger" onclick="resetAllData()">Reset</button>
+  </div>
+
+  <!-- GRID -->
+  <div class="grid-wrapper">
+    <table id="fantasyGrid">
+      <thead><tr id="gridHeader"></tr></thead>
+      <tbody id="gridBody"></tbody>
+    </table>
+  </div>
+
+  <!-- PICK ENTRY MODAL -->
+  <div class="modal-overlay" id="pickModal">
+    <div class="modal">
+      <h2 id="pickModalTitle">Enter Pick</h2>
+      <div class="modal-sub" id="pickModalSub"></div>
+      <label for="golferInput">Golfer Name</label>
+      <input type="text" id="golferInput" placeholder="e.g. Scottie Scheffler" autocomplete="off">
+      <div class="validation-msg" id="validationMsg"></div>
+      <div class="used-golfers" id="usedGolfersSection">
+        <div class="used-golfers-title">Already picked this season:</div>
+        <ul id="usedGolfersList"></ul>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="savePick()">Save</button>
+        <button class="btn-clear" onclick="clearPick()">Clear Pick</button>
+        <button onclick="closePickModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCORE RESULTS MODAL -->
+  <div class="modal-overlay" id="scoreResultsModal">
+    <div class="modal">
+      <h2 id="scoreResultsTitle">Scoring Results</h2>
+      <div class="modal-sub" id="scoreResultsSub"></div>
+      <table class="score-results-table">
+        <thead>
+          <tr>
+            <th>Participant</th>
+            <th>Golfer</th>
+            <th>Pos</th>
+            <th class="right">Earnings</th>
+          </tr>
+        </thead>
+        <tbody id="scoreResultsBody"></tbody>
+      </table>
+      <div class="modal-actions" style="margin-top:18px;">
+        <button class="btn-primary" onclick="closeScoreResultsModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ===== CONSTANTS =====
+const TOURNAMENTS = [
+  { id: "401811928", name: "Sony Open in Hawaii", abbr: "SON", isMajor: false, purse: "$9,100,000", purseEst: false },
+  { id: "401811929", name: "The American Express", abbr: "AMX", isMajor: false, purse: "$9,200,000", purseEst: false },
+  { id: "401811930", name: "Farmers Insurance Open", abbr: "FIO", isMajor: false, purse: "$9,600,000", purseEst: false },
+  { id: "401811931", name: "WM Phoenix Open", abbr: "PHX", isMajor: false, purse: "$9,600,000", purseEst: false },
+  { id: "401811932", name: "AT&T Pebble Beach Pro-Am", abbr: "PBP", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811933", name: "The Genesis Invitational", abbr: "GEN", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811934", name: "Cognizant Classic in The Palm Beaches", abbr: "COG", isMajor: false, purse: "$9,600,000", purseEst: false },
+  { id: "401811935", name: "Arnold Palmer Invitational", abbr: "API", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811936", name: "Puerto Rico Open", abbr: "PRO", isMajor: false, purse: "$4,000,000", purseEst: false },
+  { id: "401811937", name: "THE PLAYERS Championship", abbr: "TPC", isMajor: false, purse: "$25,000,000", purseEst: false },
+  { id: "401811938", name: "Valspar Championship", abbr: "VAL", isMajor: false, purse: "$9,100,000", purseEst: false },
+  { id: "401811939", name: "Texas Children's Houston Open", abbr: "HOU", isMajor: false, purse: "$9,900,000", purseEst: false },
+  { id: "401811940", name: "Valero Texas Open", abbr: "TXO", isMajor: false, purse: "$9,800,000", purseEst: false },
+  { id: "401811941", name: "Masters Tournament", abbr: "MAS", isMajor: true, purse: "$21,000,000", purseEst: true },
+  { id: "401811942", name: "RBC Heritage", abbr: "HER", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811943", name: "Zurich Classic of New Orleans", abbr: "ZUR", isMajor: false, purse: "$9,500,000", purseEst: false },
+  { id: "401811944", name: "Cadillac Championship", abbr: "CAD", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811945", name: "Truist Championship", abbr: "TRU", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811946", name: "ONEflight Myrtle Beach Classic", abbr: "MYR", isMajor: false, purse: "$4,000,000", purseEst: false },
+  { id: "401811947", name: "PGA Championship", abbr: "PGA", isMajor: true, purse: "$19,000,000", purseEst: true },
+];
+
+const STORAGE_KEY = 'fantasyGolfLeague';
+const DATA_VERSION = '2026-v1';
+
+// ===== STATE =====
+let state = {
+  participants: ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5', 'Player 6', 'Player 7'],
+  picks: {},
+  scoredTournaments: []
+};
+
+// ===== LOCALSTORAGE =====
+function loadState() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed.version !== DATA_VERSION) {
+        console.warn('Data version mismatch, resetting to fresh state for 2026 season.');
+        saveState();
+        return;
+      }
+      state.participants = parsed.participants || state.participants;
+      state.picks = parsed.picks || {};
+      state.scoredTournaments = parsed.scoredTournaments || [];
+    } catch (e) {
+      console.error('Failed to load saved state:', e);
+    }
+  }
+}
+
+function saveState() {
+  const toSave = { ...state, version: DATA_VERSION };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+}
+
+// ===== UTILITIES =====
+function formatMoney(amount) {
+  if (amount == null) return '-';
+  if (amount === 0) return '$0';
+  return '$' + amount.toLocaleString('en-US');
+}
+
+function parseEarnings(str) {
+  if (!str || str === '--' || str === '-') return 0;
+  return parseInt(str.replace(/[$,]/g, ''), 10) || 0;
+}
+
+function getOrdinal(n) {
+  if (n === 1) return '1st';
+  if (n === 2) return '2nd';
+  if (n === 3) return '3rd';
+  return `${n}th`;
+}
+
+// ===== RENDERING =====
+function renderAll() {
+  renderHeader();
+  renderGrid();
+  renderStandings();
+  populateTournamentSelect();
+  populateLastEventSelect();
+  populateCurrentWeekSelect();
+  loadCurrentWeekLeaderboard();
+}
+
+function renderHeader() {
+  const headerRow = document.getElementById('gridHeader');
+  headerRow.innerHTML = '';
+
+  const thName = document.createElement('th');
+  thName.className = 'sticky-col';
+  thName.textContent = 'Participant';
+  headerRow.appendChild(thName);
+
+  TOURNAMENTS.forEach(t => {
+    const th = document.createElement('th');
+    th.dataset.tid = t.id;
+    th.title = t.name;
+
+    const nameSpan = document.createTextNode(t.abbr);
+    th.appendChild(nameSpan);
+
+    const purseSpan = document.createElement('span');
+    purseSpan.className = 'th-purse' + (t.purseEst ? ' est' : '');
+    purseSpan.textContent = (t.purseEst ? 'Est. ' : '') + t.purse;
+    th.appendChild(purseSpan);
+
+    if (t.isMajor) th.classList.add('major');
+    if (state.scoredTournaments.includes(t.id)) th.classList.add('scored');
+    headerRow.appendChild(th);
+  });
+
+  const thTotal = document.createElement('th');
+  thTotal.className = 'sticky-right';
+  thTotal.textContent = 'TOTAL';
+  headerRow.appendChild(thTotal);
+}
+
+function renderGrid() {
+  const tbody = document.getElementById('gridBody');
+  tbody.innerHTML = '';
+
+  state.participants.forEach((name, pIdx) => {
+    const tr = document.createElement('tr');
+
+    const nameTd = document.createElement('td');
+    nameTd.className = 'sticky-col';
+    nameTd.textContent = name;
+    nameTd.title = 'Double-click to edit name';
+    nameTd.addEventListener('dblclick', () => editParticipantName(pIdx));
+    tr.appendChild(nameTd);
+
+    let totalEarnings = 0;
+    TOURNAMENTS.forEach(t => {
+      const td = document.createElement('td');
+      td.className = 'pick-cell';
+
+      const key = `${pIdx}-${t.id}`;
+      const pick = state.picks[key];
+
+      if (pick) {
+        const golferDiv = document.createElement('div');
+        golferDiv.className = 'pick-golfer';
+        golferDiv.textContent = pick.golfer;
+        golferDiv.title = pick.golfer;
+        td.appendChild(golferDiv);
+
+        if (pick.earnings != null) {
+          const posDiv = document.createElement('div');
+          posDiv.className = 'pick-position';
+          if (pick.position === 'NF') {
+            posDiv.textContent = 'Not Found';
+            posDiv.style.color = '#e74c3c';
+          } else if (pick.earnings === 0) {
+            posDiv.textContent = 'CUT';
+            posDiv.style.color = '#e74c3c';
+          } else if (pick.position) {
+            posDiv.textContent = pick.position;
+          }
+          if (posDiv.textContent) td.appendChild(posDiv);
+
+          const earningsDiv = document.createElement('div');
+          earningsDiv.className = 'pick-earnings';
+          if (pick.earnings === 0) earningsDiv.classList.add('zero');
+          earningsDiv.textContent = formatMoney(pick.earnings);
+          td.appendChild(earningsDiv);
+          totalEarnings += pick.earnings;
+        }
+      } else {
+        td.classList.add('empty');
+        td.textContent = '+';
+      }
+
+      td.addEventListener('click', () => openPickModal(pIdx, t.id));
+      tr.appendChild(td);
+    });
+
+    const totalTd = document.createElement('td');
+    totalTd.className = 'sticky-right';
+    totalTd.textContent = formatMoney(totalEarnings) || '$0';
+    tr.appendChild(totalTd);
+
+    tbody.appendChild(tr);
+  });
+}
+
+function populateLastEventSelect() {
+  const select = document.getElementById('lastEventSelect');
+  select.innerHTML = '';
+
+  let latestId = null;
+  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
+    if (state.scoredTournaments.includes(TOURNAMENTS[i].id)) {
+      latestId = TOURNAMENTS[i].id;
+      break;
+    }
+  }
+
+  TOURNAMENTS.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    const scored = state.scoredTournaments.includes(t.id);
+    opt.textContent = `${t.name}${t.isMajor ? ' (Major)' : ''}${scored ? ' ✓' : ''}`;
+    select.appendChild(opt);
+  });
+
+  select.value = latestId || TOURNAMENTS[TOURNAMENTS.length - 1].id;
+}
+
+function renderStandings() {
+  const container = document.getElementById('standingsContainer');
+  container.innerHTML = '';
+
+  const participantStats = state.participants.map((name, pIdx) => {
+    let totalEarnings = 0;
+    let missedCuts = 0;
+
+    TOURNAMENTS.forEach(t => {
+      const key = `${pIdx}-${t.id}`;
+      const pick = state.picks[key];
+      if (pick && pick.earnings != null) {
+        totalEarnings += pick.earnings;
+        if (pick.earnings === 0 && pick.position !== 'NF') {
+          missedCuts++;
+        }
+      }
+    });
+
+    return { name, pIdx, totalEarnings, missedCuts, lastEarnings: 0 };
+  });
+
+  if (participantStats.every(s => s.totalEarnings === 0)) {
+    container.innerHTML = '<span style="color:#7f8c9b;font-size:12px;">No scores yet. Enter picks and fetch tournament scores to see standings.</span>';
+    return;
+  }
+
+  participantStats.sort((a, b) => b.totalEarnings - a.totalEarnings);
+
+  let rank = 1;
+  participantStats.forEach((s, i) => {
+    if (i > 0 && s.totalEarnings !== participantStats[i - 1].totalEarnings) {
+      rank = i + 1;
+    }
+    s.rank = rank;
+    s.ordinal = getOrdinal(rank);
+  });
+
+  const leaderTotal = participantStats[0].totalEarnings;
+
+  const selectedTid = document.getElementById('lastEventSelect').value;
+  const selectedTournament = TOURNAMENTS.find(t => t.id === selectedTid);
+
+  participantStats.forEach(s => {
+    if (selectedTid) {
+      const key = `${s.pIdx}-${selectedTid}`;
+      const pick = state.picks[key];
+      s.lastEarnings = (pick && pick.earnings != null) ? pick.earnings : 0;
+    }
+  });
+
+  let tableHTML = '<table class="leaderboard-table"><thead><tr>';
+  tableHTML += '<th style="text-align:center;">Rank</th>';
+  tableHTML += '<th style="text-align:left;">Player</th>';
+  tableHTML += `<th style="text-align:center;">Last Event${selectedTournament ? ' (' + selectedTournament.abbr + ')' : ''}</th>`;
+  tableHTML += '<th style="text-align:center;">Total</th>';
+  tableHTML += '<th style="text-align:center;">Back</th>';
+  tableHTML += '<th style="text-align:center;">Missed Cuts</th>';
+  tableHTML += '</tr></thead><tbody>';
+
+  participantStats.forEach(s => {
+    const isLeader = s.totalEarnings === leaderTotal;
+    const back = isLeader ? '-' : `- ${formatMoney(leaderTotal - s.totalEarnings)}`;
+    const cutsDisplay = s.missedCuts === 0 ? '-' : s.missedCuts;
+
+    tableHTML += `<tr${isLeader ? ' class="leader"' : ''}>`;
+    tableHTML += `<td class="rank">${s.ordinal}</td>`;
+    tableHTML += `<td class="name">${s.name}</td>`;
+    tableHTML += `<td class="money">${formatMoney(s.lastEarnings)}</td>`;
+    tableHTML += `<td class="money">${formatMoney(s.totalEarnings)}</td>`;
+    tableHTML += `<td class="back">${back}</td>`;
+    tableHTML += `<td class="cuts">${cutsDisplay}</td>`;
+    tableHTML += '</tr>';
+  });
+
+  tableHTML += '</tbody></table>';
+  container.innerHTML = tableHTML;
+}
+
+function populateCurrentWeekSelect() {
+  const select = document.getElementById('currentWeekSelect');
+  select.innerHTML = '';
+
+  let latestId = null;
+  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
+    if (state.scoredTournaments.includes(TOURNAMENTS[i].id)) {
+      latestId = TOURNAMENTS[i].id;
+      break;
+    }
+  }
+
+  TOURNAMENTS.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    const scored = state.scoredTournaments.includes(t.id);
+    opt.textContent = `${t.name}${t.isMajor ? ' (Major)' : ''}${scored ? ' ✓' : ''}`;
+    select.appendChild(opt);
+  });
+
+  select.value = latestId || TOURNAMENTS[TOURNAMENTS.length - 1].id;
+}
+
+async function loadCurrentWeekLeaderboard() {
+  const select = document.getElementById('currentWeekSelect');
+  const tId = select.value;
+  if (!tId) return;
+
+  const tournament = TOURNAMENTS.find(t => t.id === tId);
+  const statusEl = document.getElementById('currentWeekStatus');
+  const container = document.getElementById('currentWeekContainer');
+
+  statusEl.textContent = 'Fetching live data...';
+  statusEl.style.color = '#7f8c9b';
+  container.innerHTML = 'Loading...';
+
+  try {
+    const url = `https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard?event=${tId}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch');
+    const data = await res.json();
+
+    const tournamentStatus = data.events?.[0]?.status?.type?.name || '';
+    const competitors = data.events?.[0]?.competitions?.[0]?.competitors || [];
+
+    const golferMap = {};
+    competitors.forEach(c => {
+      const nameLower = c.athlete.displayName.toLowerCase();
+      let pos = c.status.position?.displayName || '--';
+      let total = c.score?.displayValue || '--';
+      let thru = '--';
+      let today = '--';
+      let posNum = Infinity;
+      let isCut = false;
+
+      if (tournamentStatus === 'STATUS_SCHEDULED' && c.teeTime) {
+        const teeDate = new Date(c.teeTime);
+        thru = teeDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      } else {
+        if (c.thru != null) {
+          thru = c.thru >= 18 ? 'F' : c.thru.toString();
+        }
+        if (c.linescores && c.linescores.length > 0) {
+          const lastRound = c.linescores[c.linescores.length - 1];
+          if (lastRound?.displayValue) today = lastRound.displayValue;
+        }
+
+        const statusDetail = (c.status.type.detail || '').toLowerCase();
+        if (statusDetail.includes('cut')) {
+          pos = 'CUT';
+          isCut = true;
+          total = '--';
+          thru = '--';
+          today = '--';
+        } else if (statusDetail.includes('withdrawn')) {
+          pos = 'WD';
+          total = '--';
+          thru = '--';
+          today = '--';
+        } else if (statusDetail.includes('disqualified')) {
+          pos = 'DQ';
+          total = '--';
+          thru = '--';
+          today = '--';
+        } else {
+          posNum = parseInt(pos.replace('T', '')) || Infinity;
+        }
+      }
+
+      golferMap[nameLower] = {
+        displayName: c.athlete.displayName,
+        pos,
+        total,
+        thru,
+        today,
+        posNum,
+        isCut
+      };
+    });
+
+    const entries = state.participants.map((pName, pIdx) => {
+      const key = `${pIdx}-${tId}`;
+      const pick = state.picks[key];
+      let entry = {
+        player: pName,
+        golfer: 'No Pick',
+        pos: '--',
+        total: '--',
+        thru: '--',
+        today: '--',
+        posNum: Infinity,
+        isCut: false
+      };
+
+      if (pick) {
+        entry.golfer = pick.golfer;
+        let result = golferMap[pick.golfer.toLowerCase()];
+
+        if (!result) {
+          const lastName = pick.golfer.trim().split(' ').pop().toLowerCase();
+          let found = null;
+          for (const [key, val] of Object.entries(golferMap)) {
+            if (key.endsWith(lastName)) {
+              if (found) { found = null; break; }
+              found = val;
+            }
+          }
+          result = found;
+        }
+
+        if (result) {
+          entry.golfer = result.displayName;
+          entry.pos = result.pos;
+          entry.total = result.total;
+          entry.thru = result.thru;
+          entry.today = result.today;
+          entry.posNum = result.posNum;
+          entry.isCut = result.isCut;
+        } else {
+          entry.pos = 'NF';
+        }
+      }
+
+      return entry;
+    });
+
+    entries.sort((a, b) => {
+      if (a.isCut !== b.isCut) return a.isCut ? 1 : -1;
+      if (a.posNum !== b.posNum) return a.posNum - b.posNum;
+      return a.player.localeCompare(b.player);
+    });
+
+    let tableHTML = `<div style="text-align:center; font-size:14px; font-weight:600; margin-bottom:8px;">Current Week - ${tournament.name}</div>`;
+    tableHTML += '<table class="current-week-table"><thead><tr>';
+    tableHTML += '<th style="text-align:left;">Player</th>';
+    tableHTML += '<th style="text-align:left;">Golfer</th>';
+    tableHTML += '<th>Position</th>';
+    tableHTML += '<th>Total</th>';
+    tableHTML += '<th>Thru</th>';
+    tableHTML += '<th>Today</th>';
+    tableHTML += '</tr></thead><tbody>';
+
+    entries.forEach(e => {
+      const rowClass = e.isCut || e.pos === 'CUT' || e.pos === 'NF' || e.pos === 'WD' || e.pos === 'DQ' ? ' class="cut-row"' : '';
+      const posDisplay = e.pos === 'CUT' ? 'CUT' : (e.pos === 'NF' ? 'NF' : (e.pos === 'WD' ? 'WD' : (e.pos === 'DQ' ? 'DQ' : e.pos)));
+      tableHTML += `<tr${rowClass}>`;
+      tableHTML += `<td class="player">${e.player}</td>`;
+      tableHTML += `<td class="golfer">${e.golfer}</td>`;
+      tableHTML += `<td class="pos">${posDisplay}</td>`;
+      tableHTML += `<td class="total">${e.total}</td>`;
+      tableHTML += `<td class="thru">${e.thru}</td>`;
+      tableHTML += `<td class="today">${e.today}</td>`;
+      tableHTML += `</tr>`;
+    });
+
+    tableHTML += '</tbody></table>';
+    container.innerHTML = tableHTML;
+    statusEl.textContent = 'Live - Updated just now';
+    statusEl.style.color = '#2ecc71';
+
+  } catch (err) {
+    container.innerHTML = '<span style="color:#e74c3c;">Error loading live data (tournament may not be in progress).</span>';
+    statusEl.textContent = 'Failed';
+    statusEl.style.color = '#e74c3c';
+    console.error(err);
+  }
+}
+
+function populateTournamentSelect() {
+  const select = document.getElementById('tournamentSelect');
+  const currentValue = select.value;
+  select.innerHTML = '';
+
+  TOURNAMENTS.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    const scored = state.scoredTournaments.includes(t.id);
+    opt.textContent = `${t.name}${t.isMajor ? ' (Major)' : ''}${scored ? ' ✓' : ''}`;
+    select.appendChild(opt);
+  });
+
+  if (currentValue) select.value = currentValue;
+}
+
+// ===== PICK MANAGEMENT, SCORING, DATA MANAGEMENT, KEYBOARD SHORTCUTS =====
+let currentPickContext = { pIdx: null, tId: null };
+
+function openPickModal(pIdx, tId) {
+  const tournament = TOURNAMENTS.find(t => t.id === tId);
+  const participantName = state.participants[pIdx];
+
+  currentPickContext = { pIdx, tId };
+
+  document.getElementById('pickModalTitle').textContent = participantName;
+  document.getElementById('pickModalSub').textContent = tournament.name;
+
+  const key = `${pIdx}-${tId}`;
+  const existing = state.picks[key];
+  const input = document.getElementById('golferInput');
+  input.value = existing ? existing.golfer : '';
+
+  const valMsg = document.getElementById('validationMsg');
+  valMsg.style.display = 'none';
+  valMsg.textContent = '';
+
+  const usedGolfers = getUsedGolfers(pIdx, tId);
+  const usedList = document.getElementById('usedGolfersList');
+  usedList.innerHTML = '';
+  const section = document.getElementById('usedGolfersSection');
+
+  if (usedGolfers.length > 0) {
+    section.style.display = 'block';
+    usedGolfers.forEach(g => {
+      const li = document.createElement('li');
+      li.textContent = g;
+      usedList.appendChild(li);
+    });
+  } else {
+    section.style.display = 'none';
+  }
+
+  document.getElementById('pickModal').classList.add('active');
+  input.focus();
+  input.select();
+}
+
+function closePickModal() {
+  document.getElementById('pickModal').classList.remove('active');
+  currentPickContext = { pIdx: null, tId: null };
+}
+
+function getUsedGolfers(pIdx, excludeTId) {
+  const used = [];
+  TOURNAMENTS.forEach(t => {
+    if (t.id === excludeTId) return;
+    const key = `${pIdx}-${t.id}`;
+    const pick = state.picks[key];
+    if (pick) used.push(pick.golfer);
+  });
+  return used.sort();
+}
+
+function validatePick(pIdx, tId, golferName) {
+  if (!golferName || !golferName.trim()) {
+    return { valid: false, message: 'Please enter a golfer name.' };
+  }
+  const normalized = golferName.trim();
+  const usedGolfers = getUsedGolfers(pIdx, tId);
+  const duplicate = usedGolfers.find(g => g.toLowerCase() === normalized.toLowerCase());
+  if (duplicate) {
+    return { valid: false, message: `"${duplicate}" has already been picked this season.` };
+  }
+  return { valid: true, message: '' };
+}
+
+function savePick() {
+  const { pIdx, tId } = currentPickContext;
+  if (pIdx === null) return;
+
+  const golferName = document.getElementById('golferInput').value.trim();
+  if (!golferName) {
+    document.getElementById('validationMsg').textContent = 'Please enter a golfer name.';
+    document.getElementById('validationMsg').style.display = 'block';
+    return;
+  }
+
+  const validation = validatePick(pIdx, tId, golferName);
+  if (!validation.valid) {
+    document.getElementById('validationMsg').textContent = validation.message;
+    document.getElementById('validationMsg').style.display = 'block';
+    return;
+  }
+
+  const key = `${pIdx}-${tId}`;
+  const existing = state.picks[key];
+
+  if (existing && existing.golfer.toLowerCase() !== golferName.toLowerCase() && existing.earnings != null) {
+    state.picks[key] = { golfer: golferName, earnings: null, position: null };
+  } else if (existing) {
+    existing.golfer = golferName;
+  } else {
+    state.picks[key] = { golfer: golferName, earnings: null, position: null };
+  }
+
+  saveState();
+  renderAll();
+  closePickModal();
+}
+
+function clearPick() {
+  const { pIdx, tId } = currentPickContext;
+  if (pIdx === null) return;
+  const key = `${pIdx}-${tId}`;
+  delete state.picks[key];
+  saveState();
+  renderAll();
+  closePickModal();
+}
+
+function editParticipantName(pIdx) {
+  const current = state.participants[pIdx];
+  const newName = prompt('Enter participant name:', current);
+  if (newName !== null && newName.trim()) {
+    state.participants[pIdx] = newName.trim();
+    saveState();
+    renderAll();
+  }
+}
+
+async function handleScoreTournament() {
+  const select = document.getElementById('tournamentSelect');
+  const tId = select.value;
+  if (!tId) return;
+  await scoreTournament(tId);
+}
+
+async function scoreTournament(tournamentId) {
+  const tournament = TOURNAMENTS.find(t => t.id === tournamentId);
+  const statusEl = document.getElementById('scoreStatus');
+  statusEl.textContent = `Fetching ${tournament.abbr}...`;
+  statusEl.style.color = '#7f8c9b';
+
+  try {
+    const url = `https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard?event=${tournamentId}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`ESPN returned HTTP ${res.status}`);
+    const data = await res.json();
+
+    const competitors = data.events[0].competitions[0].competitors;
+
+    const resultsMap = {};
+    competitors.forEach(c => {
+      const name = c.athlete.displayName;
+      const earningsStr = c.statistics?.[1]?.displayValue || '$0';
+      const earnings = parseEarnings(earningsStr);
+      const position = c.status?.position?.displayName || '-';
+      resultsMap[name.toLowerCase()] = { earnings, position, displayName: name };
+    });
+
+    const matchResults = [];
+    state.participants.forEach((pName, pIdx) => {
+      const key = `${pIdx}-${tournamentId}`;
+      const pick = state.picks[key];
+      if (pick) {
+        const result = resultsMap[pick.golfer.toLowerCase()];
+        if (result) {
+          pick.earnings = result.earnings;
+          pick.position = result.position;
+          pick.golfer = result.displayName;
+          matchResults.push({ participant: pName, golfer: result.displayName, position: result.position, earnings: result.earnings, matched: true });
+        } else {
+          const lastName = pick.golfer.trim().split(' ').pop().toLowerCase();
+          let found = null;
+          for (const [key, val] of Object.entries(resultsMap)) {
+            if (key.split(' ').pop() === lastName) {
+              if (!found) found = val;
+              else { found = null; break; }
+            }
+          }
+          if (found) {
+            pick.earnings = found.earnings;
+            pick.position = found.position;
+            pick.golfer = found.displayName;
+            matchResults.push({ participant: pName, golfer: found.displayName, position: found.position, earnings: found.earnings, matched: true });
+          } else {
+            pick.earnings = 0;
+            pick.position = 'NF';
+            matchResults.push({ participant: pName, golfer: pick.golfer, position: 'Not Found', earnings: 0, matched: false });
+          }
+        }
+      } else {
+        matchResults.push({ participant: pName, golfer: '-', position: '-', earnings: 0, matched: true });
+      }
+    });
+
+    if (!state.scoredTournaments.includes(tournamentId)) {
+      state.scoredTournaments.push(tournamentId);
+    }
+
+    saveState();
+    renderAll();
+
+    statusEl.textContent = `${tournament.abbr} scored!`;
+    statusEl.style.color = '#2ecc71';
+
+    showScoreResults(tournament.name, matchResults);
+
+  } catch (err) {
+    statusEl.textContent = `Error: ${err.message}`;
+    statusEl.style.color = '#e74c3c';
+    console.error('Scoring error:', err);
+  }
+}
+
+function showScoreResults(tournamentName, results) {
+  document.getElementById('scoreResultsTitle').textContent = 'Scoring Results';
+  document.getElementById('scoreResultsSub').textContent = tournamentName;
+
+  const tbody = document.getElementById('scoreResultsBody');
+  tbody.innerHTML = '';
+
+  results.forEach(r => {
+    const tr = document.createElement('tr');
+    if (!r.matched) tr.classList.add('not-found');
+    tr.innerHTML = `
+      <td>${r.participant}</td>
+      <td>${r.golfer}</td>
+      <td style="text-align:center">${r.position}</td>
+      <td class="earnings">${formatMoney(r.earnings)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('scoreResultsModal').classList.add('active');
+}
+
+function closeScoreResultsModal() {
+  document.getElementById('scoreResultsModal').classList.remove('active');
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'fantasy-golf-backup.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed.participants || !Array.isArray(parsed.participants)) {
+        throw new Error('Invalid file: missing participants array');
+      }
+      state.participants = parsed.participants;
+      state.picks = parsed.picks || {};
+      state.scoredTournaments = parsed.scoredTournaments || [];
+      saveState();
+      renderAll();
+      document.getElementById('scoreStatus').textContent = 'Data imported!';
+      document.getElementById('scoreStatus').style.color = '#2ecc71';
+    } catch (err) {
+      alert('Failed to import: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function resetAllData() {
+  if (!confirm('Are you sure you want to reset ALL data? This cannot be undone.')) return;
+  if (!confirm('Really delete all picks and scores?')) return;
+  state = {
+    participants: ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5', 'Player 6', 'Player 7'],
+    picks: {},
+    scoredTournaments: []
+  };
+  saveState();
+  renderAll();
+  document.getElementById('scoreStatus').textContent = 'Data reset.';
+  document.getElementById('scoreStatus').style.color = '#f39c12';
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closePickModal();
+    closeScoreResultsModal();
+  }
+  if (e.key === 'Enter' && document.getElementById('pickModal').classList.contains('active')) {
+    savePick();
+  }
+});
+
+document.getElementById('pickModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('pickModal')) closePickModal();
+});
+document.getElementById('scoreResultsModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('scoreResultsModal')) closeScoreResultsModal();
+});
+
+function init() {
+  loadState();
+  renderAll();
+}
+
+init();
+</script>
+</body>
+</html>
