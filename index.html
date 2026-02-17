@@ -148,7 +148,9 @@
     /* ===== GRID ===== */
     .grid-wrapper {
       overflow-x: auto;
+      overflow-y: hidden;
       margin: 0;
+      padding: 0 0 16px;
       padding: 0 24px 16px;
       background: #0f1e36;
       position: relative;
@@ -211,8 +213,9 @@
     #fantasyGrid thead th.sticky-col {
       position: sticky;
       left: 0;
-      z-index: 15;
+      z-index: 30;
       background: #0f1e36;
+      box-shadow: 2px 0 0 #2a3a5c;
       min-width: 140px;
       text-align: left;
       padding-left: 14px;
@@ -220,8 +223,9 @@
     #fantasyGrid thead th.sticky-right {
       position: sticky;
       right: 0;
-      z-index: 15;
+      z-index: 30;
       background: #0f1e36;
+      box-shadow: -2px 0 0 #2a3a5c;
       min-width: 100px;
     }
     #fantasyGrid tbody td {
@@ -233,8 +237,9 @@
     #fantasyGrid tbody td.sticky-col {
       position: sticky;
       left: 0;
-      z-index: 5;
+      z-index: 20;
       background: #0f1e36;
+      overflow: hidden;
       padding: 10px 14px;
       font-weight: 600;
       color: #fff;
@@ -246,8 +251,9 @@
     #fantasyGrid tbody td.sticky-right {
       position: sticky;
       right: 0;
-      z-index: 5;
+      z-index: 20;
       background: #0f1e36;
+      overflow: hidden;
       padding: 10px 8px;
       text-align: center;
       font-weight: 700;
@@ -409,10 +415,37 @@
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
+      .standings-panel, .current-week-panel, .controls { padding-left: 12px; padding-right: 12px; }
+      .grid-wrapper { padding: 0 0 12px; }
       .controls { flex-direction: column; align-items: stretch; }
       .controls-spacer { display: none; }
       .header h1 { font-size: 20px; }
       .last-event-control, .current-event-control { flex-direction: column; align-items: flex-start; }
+
+      #fantasyGrid thead th.sticky-col,
+      #fantasyGrid tbody td.sticky-col {
+        min-width: 100px;
+        padding-left: 8px;
+        padding-right: 4px;
+        font-size: 11px;
+      }
+      #fantasyGrid thead th.sticky-right,
+      #fantasyGrid tbody td.sticky-right {
+        min-width: 70px;
+        padding-left: 4px;
+        padding-right: 4px;
+        font-size: 12px;
+      }
+      .pick-cell {
+        min-width: 100px;
+        max-width: 110px;
+      }
+      #fantasyGrid thead th {
+        min-width: 100px;
+        max-width: 110px;
+        font-size: 9px;
+        padding: 8px 4px;
+      }
     }
 
     /* Hidden file input */
@@ -942,12 +975,27 @@ async function loadCurrentWeekLeaderboard() {
     const tournamentStatus = data.events?.[0]?.status?.type?.name || '';
     const competitors = data.events?.[0]?.competitions?.[0]?.competitors || [];
 
+    const formatTeeTime = (competitor) => {
+      const teeTime = competitor?.status?.teeTime || competitor?.teeTime;
+      if (teeTime) {
+        const teeDate = new Date(teeTime);
+        return teeDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      }
+      return null;
+    };
+
     const getThruDisplay = (competitor) => {
       if (competitor?.status?.thru != null) {
+        if (competitor.status.thru < 1) {
+          return formatTeeTime(competitor) || '--';
+        }
         return competitor.status.thru >= 18 ? 'F' : competitor.status.thru.toString();
       }
 
       if (competitor?.status?.hole != null) {
+        if (competitor.status.hole < 1) {
+          return formatTeeTime(competitor) || '--';
+        }
         return competitor.status.hole >= 18 ? 'F' : competitor.status.hole.toString();
       }
 
@@ -956,6 +1004,9 @@ async function loadCurrentWeekLeaderboard() {
       }
 
       if (competitor?.thru != null) {
+        if (competitor.thru < 1) {
+          return formatTeeTime(competitor) || '--';
+        }
         return competitor.thru >= 18 ? 'F' : competitor.thru.toString();
       }
 
@@ -967,15 +1018,13 @@ async function loadCurrentWeekLeaderboard() {
       return '--';
     };
 
-    const getTotalScoreDisplay = (competitor) => {
-      const statusDetail = competitor?.status?.detail || '';
-      const detailMatch = statusDetail.match(/^([+-]?\d+|E)\(\d+\)$/i);
-      if (detailMatch) {
-        return detailMatch[1].toUpperCase();
-      }
+    const isTeeTime = (thruValue) => {
+      return thruValue && /\d{1,2}:\d{2}\s*(AM|PM)/i.test(thruValue);
+    };
 
+    const getTotalScoreDisplay = (competitor) => {
       const scoreToParStat = (competitor?.statistics || []).find(s => s?.name === 'scoreToPar' && s?.displayValue != null);
-      if (scoreToParStat && scoreToParStat.displayValue !== '-') {
+      if (scoreToParStat && scoreToParStat.displayValue !== '-' && scoreToParStat.displayValue !== '--') {
         return scoreToParStat.displayValue;
       }
 
@@ -987,15 +1036,18 @@ async function loadCurrentWeekLeaderboard() {
     };
 
     const getTodayScoreDisplay = (competitor) => {
-      const todayDetail = competitor?.status?.todayDetail || '';
-      const todayDetailMatch = todayDetail.match(/^([+-]?\d+|E)\(\d+\)$/i);
-      if (todayDetailMatch) {
-        return todayDetailMatch[1].toUpperCase();
+      const statusDetail = competitor?.status?.detail || '';
+      const detailMatch = statusDetail.match(/^([+-]?\d+|E)\(\d+\)$/i);
+      if (detailMatch) {
+        return detailMatch[1].toUpperCase();
       }
 
-      const lineWithScore = (competitor?.linescores || []).find(line => line?.displayValue && line.displayValue !== '-');
-      if (lineWithScore) {
-        return lineWithScore.displayValue;
+      const currentPeriod = competitor?.status?.period;
+      if (currentPeriod && competitor?.linescores) {
+        const currentLine = competitor.linescores.find(line => line.period === currentPeriod);
+        if (currentLine && currentLine.displayValue && currentLine.displayValue !== '-') {
+          return currentLine.displayValue;
+        }
       }
 
       return '--';
@@ -1060,9 +1112,10 @@ async function loadCurrentWeekLeaderboard() {
       let posNum = Infinity;
       let isCut = false;
 
-      if (tournamentStatus === 'STATUS_SCHEDULED' && c.teeTime) {
-        const teeDate = new Date(c.teeTime);
-        thru = teeDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      const teeTimeValue = c.status?.teeTime || c.teeTime;
+      if (tournamentStatus === 'STATUS_SCHEDULED' && teeTimeValue) {
+        thru = formatTeeTime(c);
+        today = '-';
       } else {
         thru = getThruDisplay(c);
         const statusDetail = (c.status.type.detail || '').toLowerCase();
@@ -1083,9 +1136,11 @@ async function loadCurrentWeekLeaderboard() {
           thru = '--';
           today = '--';
         } else {
-          if (thru === '--' && c.teeTime) {
-            const teeDate = new Date(c.teeTime);
-            thru = teeDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+          if (thru === '--' && teeTimeValue) {
+            thru = formatTeeTime(c) || '--';
+          }
+          if (isTeeTime(thru)) {
+            today = '-';
           }
           posNum = parseInt(pos.replace('T', '')) || Infinity;
         }
