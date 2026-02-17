@@ -1,4 +1,4 @@
-<!DOCTYPE html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -150,7 +150,6 @@
       overflow-x: auto;
       overflow-y: hidden;
       margin: 0;
-      padding: 0 0 16px;
       padding: 0 24px 16px;
       background: #0f1e36;
       position: relative;
@@ -416,36 +415,11 @@
     /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
       .standings-panel, .current-week-panel, .controls { padding-left: 12px; padding-right: 12px; }
-      .grid-wrapper { padding: 0 0 12px; }
+      .grid-wrapper { padding: 0 12px 12px; }
       .controls { flex-direction: column; align-items: stretch; }
       .controls-spacer { display: none; }
       .header h1 { font-size: 20px; }
       .last-event-control, .current-event-control { flex-direction: column; align-items: flex-start; }
-
-      #fantasyGrid thead th.sticky-col,
-      #fantasyGrid tbody td.sticky-col {
-        min-width: 100px;
-        padding-left: 8px;
-        padding-right: 4px;
-        font-size: 11px;
-      }
-      #fantasyGrid thead th.sticky-right,
-      #fantasyGrid tbody td.sticky-right {
-        min-width: 70px;
-        padding-left: 4px;
-        padding-right: 4px;
-        font-size: 12px;
-      }
-      .pick-cell {
-        min-width: 100px;
-        max-width: 110px;
-      }
-      #fantasyGrid thead th {
-        min-width: 100px;
-        max-width: 110px;
-        font-size: 9px;
-        padding: 8px 4px;
-      }
     }
 
     /* Hidden file input */
@@ -552,7 +526,7 @@ const TOURNAMENTS = [
   { id: "401811930", name: "Farmers Insurance Open", dates: "Jan 29–Feb 1, 2026", abbr: "FIO", isMajor: false, purse: "$9,600,000", purseEst: false },
   { id: "401811931", name: "WM Phoenix Open", dates: "Feb 5–8, 2026", abbr: "PHX", isMajor: false, purse: "$9,600,000", purseEst: false },
   { id: "401811932", name: "AT&T Pebble Beach Pro-Am", dates: "Feb 12–15, 2026", abbr: "PBP", isMajor: false, purse: "$20,000,000", purseEst: false },
-  { id: "401811933", name: "The Genesis Invitational", dates: "Feb 19–22, 2026", abbr: "GEN", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811933", name: "The Genesis Invitational", dates: "Feb 19–22, 2026", abbr: "GEN", isMajor: false, purse: "$20,000,000.00", purseEst: false },
   { id: "401811934", name: "Cognizant Classic in The Palm Beaches", dates: "Feb 26–Mar 1, 2026", abbr: "COG", isMajor: false, purse: "$9,600,000", purseEst: false },
   { id: "401811935", name: "Arnold Palmer Invitational", dates: "Mar 5–8, 2026", abbr: "API", isMajor: false, purse: "$20,000,000", purseEst: false },
   { id: "401811936", name: "Puerto Rico Open", dates: "Mar 5–8, 2026", abbr: "PRO", isMajor: false, purse: "$4,000,000", purseEst: false },
@@ -581,6 +555,18 @@ const PEBBLE_PROAM_2026_PAYOUTS = [
   34250, 34000, 33750, 33500, 33250, 33000, 32750, 32500, 32250, 32000
 ];
 const PEBBLE_PROAM_2026_PURSE = 20000000;
+
+const GENESIS_2026_PAYOUTS = [
+  4000000, 2200000, 1400000, 1000000, 840000, 760000, 700000, 646000, 600000, 556000,
+  514000, 472000, 430000, 389000, 369000, 349000, 329000, 309000, 289000, 269000,
+  250000, 232000, 214000, 196000, 178000, 160000, 153500, 147000, 141000, 134500,
+  128000, 122000, 116000, 111000, 106000, 101000, 96000, 92000, 88000, 84000,
+  80000, 76000, 72000, 68000, 64000, 61000, 58000, 56000, 54000, 52000,
+  51000, 50000, 49000, 48000, 47000, 46000, 45000, 44000, 43500, 43000,
+  42500, 42000, 41000, 40000, 39000, 38000, 37000, 36000, 35000, 34000,
+  33000, 32000, 31000, 30000
+];
+const GENESIS_2026_PURSE = 20000000;
 
 const STORAGE_KEY = 'fantasyGolfLeague';
 const DATA_VERSION = '2026-v3';
@@ -975,27 +961,12 @@ async function loadCurrentWeekLeaderboard() {
     const tournamentStatus = data.events?.[0]?.status?.type?.name || '';
     const competitors = data.events?.[0]?.competitions?.[0]?.competitors || [];
 
-    const formatTeeTime = (competitor) => {
-      const teeTime = competitor?.status?.teeTime || competitor?.teeTime;
-      if (teeTime) {
-        const teeDate = new Date(teeTime);
-        return teeDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-      }
-      return null;
-    };
-
     const getThruDisplay = (competitor) => {
       if (competitor?.status?.thru != null) {
-        if (competitor.status.thru < 1) {
-          return formatTeeTime(competitor) || '--';
-        }
         return competitor.status.thru >= 18 ? 'F' : competitor.status.thru.toString();
       }
 
       if (competitor?.status?.hole != null) {
-        if (competitor.status.hole < 1) {
-          return formatTeeTime(competitor) || '--';
-        }
         return competitor.status.hole >= 18 ? 'F' : competitor.status.hole.toString();
       }
 
@@ -1004,9 +975,6 @@ async function loadCurrentWeekLeaderboard() {
       }
 
       if (competitor?.thru != null) {
-        if (competitor.thru < 1) {
-          return formatTeeTime(competitor) || '--';
-        }
         return competitor.thru >= 18 ? 'F' : competitor.thru.toString();
       }
 
@@ -1018,13 +986,15 @@ async function loadCurrentWeekLeaderboard() {
       return '--';
     };
 
-    const isTeeTime = (thruValue) => {
-      return thruValue && /\d{1,2}:\d{2}\s*(AM|PM)/i.test(thruValue);
-    };
-
     const getTotalScoreDisplay = (competitor) => {
+      const statusDetail = competitor?.status?.detail || '';
+      const detailMatch = statusDetail.match(/^([+-]?\d+|E)\(\d+\)$/i);
+      if (detailMatch) {
+        return detailMatch[1].toUpperCase();
+      }
+
       const scoreToParStat = (competitor?.statistics || []).find(s => s?.name === 'scoreToPar' && s?.displayValue != null);
-      if (scoreToParStat && scoreToParStat.displayValue !== '-' && scoreToParStat.displayValue !== '--') {
+      if (scoreToParStat && scoreToParStat.displayValue !== '-') {
         return scoreToParStat.displayValue;
       }
 
@@ -1036,18 +1006,15 @@ async function loadCurrentWeekLeaderboard() {
     };
 
     const getTodayScoreDisplay = (competitor) => {
-      const statusDetail = competitor?.status?.detail || '';
-      const detailMatch = statusDetail.match(/^([+-]?\d+|E)\(\d+\)$/i);
-      if (detailMatch) {
-        return detailMatch[1].toUpperCase();
+      const todayDetail = competitor?.status?.todayDetail || '';
+      const todayDetailMatch = todayDetail.match(/^([+-]?\d+|E)\(\d+\)$/i);
+      if (todayDetailMatch) {
+        return todayDetailMatch[1].toUpperCase();
       }
 
-      const currentPeriod = competitor?.status?.period;
-      if (currentPeriod && competitor?.linescores) {
-        const currentLine = competitor.linescores.find(line => line.period === currentPeriod);
-        if (currentLine && currentLine.displayValue && currentLine.displayValue !== '-') {
-          return currentLine.displayValue;
-        }
+      const lineWithScore = (competitor?.linescores || []).find(line => line?.displayValue && line.displayValue !== '-');
+      if (lineWithScore) {
+        return lineWithScore.displayValue;
       }
 
       return '--';
@@ -1065,10 +1032,12 @@ async function loadCurrentWeekLeaderboard() {
       return parseInt(purseText.replace(/[$,]/g, ''), 10) || 0;
     };
 
-    const payoutScale = parsePurseAmount(tournament?.purse) / PEBBLE_PROAM_2026_PURSE;
+    const payoutTemplate = tId === '401811933' ? GENESIS_2026_PAYOUTS : PEBBLE_PROAM_2026_PAYOUTS;
+    const payoutTemplatePurse = tId === '401811933' ? GENESIS_2026_PURSE : PEBBLE_PROAM_2026_PURSE;
+    const payoutScale = parsePurseAmount(tournament?.purse) / payoutTemplatePurse;
     const getRankPayout = (rank) => {
-      if (!Number.isInteger(rank) || rank < 1 || rank > PEBBLE_PROAM_2026_PAYOUTS.length) return 0;
-      const base = PEBBLE_PROAM_2026_PAYOUTS[rank - 1];
+      if (!Number.isInteger(rank) || rank < 1 || rank > payoutTemplate.length) return 0;
+      const base = payoutTemplate[rank - 1];
       const scaled = Math.round(base * (payoutScale || 1));
       return Math.max(0, scaled);
     };
@@ -1112,10 +1081,9 @@ async function loadCurrentWeekLeaderboard() {
       let posNum = Infinity;
       let isCut = false;
 
-      const teeTimeValue = c.status?.teeTime || c.teeTime;
-      if (tournamentStatus === 'STATUS_SCHEDULED' && teeTimeValue) {
-        thru = formatTeeTime(c);
-        today = '-';
+      if (tournamentStatus === 'STATUS_SCHEDULED' && c.teeTime) {
+        const teeDate = new Date(c.teeTime);
+        thru = teeDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
       } else {
         thru = getThruDisplay(c);
         const statusDetail = (c.status.type.detail || '').toLowerCase();
@@ -1136,11 +1104,9 @@ async function loadCurrentWeekLeaderboard() {
           thru = '--';
           today = '--';
         } else {
-          if (thru === '--' && teeTimeValue) {
-            thru = formatTeeTime(c) || '--';
-          }
-          if (isTeeTime(thru)) {
-            today = '-';
+          if (thru === '--' && c.teeTime) {
+            const teeDate = new Date(c.teeTime);
+            thru = teeDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
           }
           posNum = parseInt(pos.replace('T', '')) || Infinity;
         }
