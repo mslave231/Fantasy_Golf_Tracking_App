@@ -7,9 +7,13 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    html, body {
+      min-height: 100%;
+      background: #0f1e36;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a1628;
       color: #e0e6ed;
       min-height: 100vh;
     }
@@ -99,6 +103,7 @@
     }
     .leaderboard-table .money { color: #2ecc71; }
     .leaderboard-table .back { color: #f39c12; font-weight: 600; }
+    .leaderboard-table .back.negative { color: #e74c3c; }
     .leaderboard-table .cuts, .current-week-table .cut { color: #e74c3c; font-weight: 600; }
     .leaderboard-table tr.leader {
       background: rgba(241, 196, 15, 0.1);
@@ -143,13 +148,17 @@
     /* ===== GRID ===== */
     .grid-wrapper {
       overflow-x: auto;
+      overflow-y: hidden;
       margin: 0;
+      padding: 0 0 16px;
+      background: #0f1e36;
       position: relative;
     }
     #fantasyGrid {
       border-collapse: separate;
       border-spacing: 0;
       font-size: 13px;
+      width: 100%;
       min-width: 100%;
     }
     #fantasyGrid thead th {
@@ -157,7 +166,6 @@
       padding: 10px 6px;
       font-weight: 600;
       font-size: 10px;
-      text-transform: uppercase;
       letter-spacing: 0.6px;
       color: #7f8c9b;
       border-bottom: 2px solid #2a3a5c;
@@ -180,6 +188,15 @@
       text-transform: none;
       margin-top: 3px;
     }
+    #fantasyGrid thead th .th-date {
+      display: block;
+      font-size: 9px;
+      font-weight: 500;
+      color: #9fb0c2;
+      letter-spacing: 0;
+      text-transform: none;
+      margin-top: 2px;
+    }
     #fantasyGrid thead th .th-purse.est { color: #7f8c9b; }
     #fantasyGrid thead th.major {
       border-top: 3px solid #f1c40f;
@@ -195,8 +212,9 @@
     #fantasyGrid thead th.sticky-col {
       position: sticky;
       left: 0;
-      z-index: 15;
+      z-index: 30;
       background: #0f1e36;
+      box-shadow: 2px 0 0 #2a3a5c;
       min-width: 140px;
       text-align: left;
       padding-left: 14px;
@@ -204,8 +222,9 @@
     #fantasyGrid thead th.sticky-right {
       position: sticky;
       right: 0;
-      z-index: 15;
+      z-index: 30;
       background: #0f1e36;
+      box-shadow: -2px 0 0 #2a3a5c;
       min-width: 100px;
     }
     #fantasyGrid tbody td {
@@ -217,8 +236,9 @@
     #fantasyGrid tbody td.sticky-col {
       position: sticky;
       left: 0;
-      z-index: 5;
+      z-index: 20;
       background: #0f1e36;
+      overflow: hidden;
       padding: 10px 14px;
       font-weight: 600;
       color: #fff;
@@ -230,8 +250,9 @@
     #fantasyGrid tbody td.sticky-right {
       position: sticky;
       right: 0;
-      z-index: 5;
+      z-index: 20;
       background: #0f1e36;
+      overflow: hidden;
       padding: 10px 8px;
       text-align: center;
       font-weight: 700;
@@ -393,10 +414,37 @@
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
+      .standings-panel, .current-week-panel, .controls { padding-left: 12px; padding-right: 12px; }
+      .grid-wrapper { padding: 0 0 12px; }
       .controls { flex-direction: column; align-items: stretch; }
       .controls-spacer { display: none; }
       .header h1 { font-size: 20px; }
       .last-event-control, .current-event-control { flex-direction: column; align-items: flex-start; }
+
+      #fantasyGrid thead th.sticky-col,
+      #fantasyGrid tbody td.sticky-col {
+        min-width: 100px;
+        padding-left: 8px;
+        padding-right: 4px;
+        font-size: 11px;
+      }
+      #fantasyGrid thead th.sticky-right,
+      #fantasyGrid tbody td.sticky-right {
+        min-width: 70px;
+        padding-left: 4px;
+        padding-right: 4px;
+        font-size: 12px;
+      }
+      .pick-cell {
+        min-width: 100px;
+        max-width: 110px;
+      }
+      #fantasyGrid thead th {
+        min-width: 100px;
+        max-width: 110px;
+        font-size: 9px;
+        padding: 8px 4px;
+      }
     }
 
     /* Hidden file input */
@@ -415,7 +463,7 @@
   <div class="standings-panel">
     <div class="standings-title">Season Leaderboard</div>
     <div class="last-event-control">
-      <span>Event column:</span>
+      <span>Latest Event:</span>
       <select id="lastEventSelect" onchange="renderStandings()"></select>
     </div>
     <div id="standingsContainer"></div>
@@ -435,8 +483,8 @@
 
   <!-- CONTROLS -->
   <div class="controls">
+    <button class="btn-score" onclick="handleScoreTournament()">Fetch Scores Through:</button>
     <select id="tournamentSelect"></select>
-    <button class="btn-score" onclick="handleScoreTournament()">Fetch Scores</button>
     <span class="score-status" id="scoreStatus"></span>
     <div class="controls-spacer"></div>
     <button onclick="exportData()">Export JSON</button>
@@ -498,35 +546,90 @@
 <script>
 // ===== CONSTANTS =====
 const TOURNAMENTS = [
-  { id: "401811928", name: "Sony Open in Hawaii", abbr: "SON", isMajor: false, purse: "$9,100,000", purseEst: false },
-  { id: "401811929", name: "The American Express", abbr: "AMX", isMajor: false, purse: "$9,200,000", purseEst: false },
-  { id: "401811930", name: "Farmers Insurance Open", abbr: "FIO", isMajor: false, purse: "$9,600,000", purseEst: false },
-  { id: "401811931", name: "WM Phoenix Open", abbr: "PHX", isMajor: false, purse: "$9,600,000", purseEst: false },
-  { id: "401811932", name: "AT&T Pebble Beach Pro-Am", abbr: "PBP", isMajor: false, purse: "$20,000,000", purseEst: false },
-  { id: "401811933", name: "The Genesis Invitational", abbr: "GEN", isMajor: false, purse: "$20,000,000", purseEst: false },
-  { id: "401811934", name: "Cognizant Classic in The Palm Beaches", abbr: "COG", isMajor: false, purse: "$9,600,000", purseEst: false },
-  { id: "401811935", name: "Arnold Palmer Invitational", abbr: "API", isMajor: false, purse: "$20,000,000", purseEst: false },
-  { id: "401811936", name: "Puerto Rico Open", abbr: "PRO", isMajor: false, purse: "$4,000,000", purseEst: false },
-  { id: "401811937", name: "THE PLAYERS Championship", abbr: "TPC", isMajor: false, purse: "$25,000,000", purseEst: false },
-  { id: "401811938", name: "Valspar Championship", abbr: "VAL", isMajor: false, purse: "$9,100,000", purseEst: false },
-  { id: "401811939", name: "Texas Children's Houston Open", abbr: "HOU", isMajor: false, purse: "$9,900,000", purseEst: false },
-  { id: "401811940", name: "Valero Texas Open", abbr: "TXO", isMajor: false, purse: "$9,800,000", purseEst: false },
-  { id: "401811941", name: "Masters Tournament", abbr: "MAS", isMajor: true, purse: "$21,000,000", purseEst: true },
-  { id: "401811942", name: "RBC Heritage", abbr: "HER", isMajor: false, purse: "$20,000,000", purseEst: false },
-  { id: "401811943", name: "Zurich Classic of New Orleans", abbr: "ZUR", isMajor: false, purse: "$9,500,000", purseEst: false },
-  { id: "401811944", name: "Cadillac Championship", abbr: "CAD", isMajor: false, purse: "$20,000,000", purseEst: false },
-  { id: "401811945", name: "Truist Championship", abbr: "TRU", isMajor: false, purse: "$20,000,000", purseEst: false },
-  { id: "401811946", name: "ONEflight Myrtle Beach Classic", abbr: "MYR", isMajor: false, purse: "$4,000,000", purseEst: false },
-  { id: "401811947", name: "PGA Championship", abbr: "PGA", isMajor: true, purse: "$19,000,000", purseEst: true },
+  { id: "401811928", name: "Sony Open in Hawaii", dates: "Jan 15–18, 2026", abbr: "SON", isMajor: false, purse: "$9,100,000", purseEst: false },
+  { id: "401811929", name: "The American Express", dates: "Jan 22–25, 2026", abbr: "AMX", isMajor: false, purse: "$9,200,000", purseEst: false },
+  { id: "401811930", name: "Farmers Insurance Open", dates: "Jan 29–Feb 1, 2026", abbr: "FIO", isMajor: false, purse: "$9,600,000", purseEst: false },
+  { id: "401811931", name: "WM Phoenix Open", dates: "Feb 5–8, 2026", abbr: "PHX", isMajor: false, purse: "$9,600,000", purseEst: false },
+  { id: "401811932", name: "AT&T Pebble Beach Pro-Am", dates: "Feb 12–15, 2026", abbr: "PBP", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811933", name: "The Genesis Invitational", dates: "Feb 19–22, 2026", abbr: "GEN", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811934", name: "Cognizant Classic in The Palm Beaches", dates: "Feb 26–Mar 1, 2026", abbr: "COG", isMajor: false, purse: "$9,600,000", purseEst: false },
+  { id: "401811935", name: "Arnold Palmer Invitational", dates: "Mar 5–8, 2026", abbr: "API", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811936", name: "Puerto Rico Open", dates: "Mar 5–8, 2026", abbr: "PRO", isMajor: false, purse: "$4,000,000", purseEst: false },
+  { id: "401811937", name: "THE PLAYERS Championship", dates: "Mar 12–15, 2026", abbr: "TPC", isMajor: false, purse: "$25,000,000", purseEst: false },
+  { id: "401811938", name: "Valspar Championship", dates: "Mar 19–22, 2026", abbr: "VAL", isMajor: false, purse: "$9,100,000", purseEst: false },
+  { id: "401811939", name: "Texas Children's Houston Open", dates: "Mar 26–29, 2026", abbr: "HOU", isMajor: false, purse: "$9,900,000", purseEst: false },
+  { id: "401811940", name: "Valero Texas Open", dates: "Apr 2–5, 2026", abbr: "TXO", isMajor: false, purse: "$9,800,000", purseEst: false },
+  { id: "401811941", name: "Masters Tournament", dates: "Apr 9–12, 2026", abbr: "MAS", isMajor: true, purse: "$21,000,000", purseEst: true },
+  { id: "401811942", name: "RBC Heritage", dates: "Apr 16–19, 2026", abbr: "HER", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811943", name: "Zurich Classic of New Orleans", dates: "Apr 23–26, 2026", abbr: "ZUR", isMajor: false, purse: "$9,500,000", purseEst: false },
+  { id: "401811944", name: "Cadillac Championship", dates: "Apr 30–May 3, 2026", abbr: "CAD", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811945", name: "Truist Championship", dates: "May 7–10, 2026", abbr: "TRU", isMajor: false, purse: "$20,000,000", purseEst: false },
+  { id: "401811946", name: "ONEflight Myrtle Beach Classic", dates: "May 7–10, 2026", abbr: "MYR", isMajor: false, purse: "$4,000,000", purseEst: false },
+  { id: "401811947", name: "PGA Championship", dates: "May 14–17, 2026", abbr: "PGA", isMajor: true, purse: "$19,000,000", purseEst: true },
 ];
 
+
+const PEBBLE_PROAM_2026_PAYOUTS = [
+  3600000, 2160000, 1360000, 960000, 795000, 715000, 665000, 615000, 575000, 535000,
+  495000, 455000, 415000, 375000, 352000, 332000, 312000, 292000, 272000, 252000,
+  232000, 217000, 202000, 187000, 172000, 158000, 150000, 143000, 137000, 131000,
+  125000, 119000, 114000, 109000, 104000, 99000, 94000, 89000, 84000, 80000,
+  76000, 72000, 68000, 64000, 60000, 57000, 54000, 52000, 50000, 48000,
+  47000, 46000, 45000, 44000, 43000, 42000, 41000, 40000, 39500, 39000,
+  38500, 38000, 37500, 37000, 36500, 36000, 35500, 35000, 34750, 34500,
+  34250, 34000, 33750, 33500, 33250, 33000, 32750, 32500, 32250, 32000
+];
+const PEBBLE_PROAM_2026_PURSE = 20000000;
+
 const STORAGE_KEY = 'fantasyGolfLeague';
-const DATA_VERSION = '2026-v1';
+const DATA_VERSION = '2026-v3';
 
 // ===== STATE =====
 let state = {
-  participants: ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5', 'Player 6', 'Player 7'],
-  picks: {},
+  participants: ['Andrew Vlosak', 'Van Ainalakis', 'Joe Vlosak', 'Ben Wilson', 'Kevin Fleck', 'Bryan Stresney', 'Matt Slavik'],
+  picks: {
+    '0-401811928': { golfer: 'Si Woo Kim', earnings: null, position: null },
+    '0-401811929': { golfer: 'Matt Fitzpatrick', earnings: null, position: null },
+    '0-401811930': { golfer: 'Max Greyserman', earnings: null, position: null },
+    '0-401811931': { golfer: 'Scottie Scheffler', earnings: null, position: null },
+    '0-401811932': { golfer: 'Chris Gotterup', earnings: null, position: null },
+
+    '1-401811928': { golfer: 'Keegan Bradley', earnings: null, position: null },
+    '1-401811929': { golfer: 'J.T. Poston', earnings: null, position: null },
+    '1-401811930': { golfer: 'Wyndham Clark', earnings: null, position: null },
+    '1-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+    '1-401811932': { golfer: 'Russell Henley', earnings: null, position: null },
+
+    '2-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
+    '2-401811929': { golfer: 'Robert MacIntyre', earnings: null, position: null },
+    '2-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
+    '2-401811931': { golfer: 'Maverick McNealy', earnings: null, position: null },
+    '2-401811932': { golfer: 'Si Woo Kim', earnings: null, position: null },
+
+    '3-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
+    '3-401811929': { golfer: 'Russell Henley', earnings: null, position: null },
+    '3-401811930': { golfer: 'Ludvig Åberg', earnings: null, position: null },
+    '3-401811931': { golfer: 'Xander Schauffele', earnings: null, position: null },
+    '3-401811932': { golfer: 'Scottie Scheffler', earnings: null, position: null },
+
+    '4-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
+    '4-401811929': { golfer: 'Sepp Straka', earnings: null, position: null },
+    '4-401811930': { golfer: 'Jason Day', earnings: null, position: null },
+    '4-401811931': { golfer: 'Jake Knapp', earnings: null, position: null },
+    '4-401811932': { golfer: 'Scottie Scheffler', earnings: null, position: null },
+
+    '5-401811928': { golfer: 'Harry Hall', earnings: null, position: null },
+    '5-401811929': { golfer: 'Si Woo Kim', earnings: null, position: null },
+    '5-401811930': { golfer: 'Sam Stevens', earnings: null, position: null },
+    '5-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+    '5-401811932': { golfer: 'Akshay Bhatia', earnings: null, position: null },
+
+    '6-401811928': { golfer: 'Collin Morikawa', earnings: null, position: null },
+    '6-401811929': { golfer: 'Patrick Cantlay', earnings: null, position: null },
+    '6-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
+    '6-401811931': { golfer: 'Ben Griffin', earnings: null, position: null },
+    '6-401811932': { golfer: 'Tommy Fleetwood', earnings: null, position: null }
+  },
   scoredTournaments: []
 };
 
@@ -562,6 +665,11 @@ function formatMoney(amount) {
   return '$' + amount.toLocaleString('en-US');
 }
 
+function formatBackMoney(amount) {
+  if (amount == null || amount === 0) return '-';
+  return `(${formatMoney(amount)})`;
+}
+
 function parseEarnings(str) {
   if (!str || str === '--' || str === '-') return 0;
   return parseInt(str.replace(/[$,]/g, ''), 10) || 0;
@@ -578,9 +686,9 @@ function getOrdinal(n) {
 function renderAll() {
   renderHeader();
   renderGrid();
-  renderStandings();
   populateTournamentSelect();
   populateLastEventSelect();
+  renderStandings();
   populateCurrentWeekSelect();
   loadCurrentWeekLeaderboard();
 }
@@ -599,8 +707,14 @@ function renderHeader() {
     th.dataset.tid = t.id;
     th.title = t.name;
 
-    const nameSpan = document.createTextNode(t.abbr);
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = t.name;
     th.appendChild(nameSpan);
+
+    const dateSpan = document.createElement('span');
+    dateSpan.className = 'th-date';
+    dateSpan.textContent = t.dates || '';
+    th.appendChild(dateSpan);
 
     const purseSpan = document.createElement('span');
     purseSpan.className = 'th-purse' + (t.purseEst ? ' est' : '');
@@ -690,13 +804,7 @@ function populateLastEventSelect() {
   const select = document.getElementById('lastEventSelect');
   select.innerHTML = '';
 
-  let latestId = null;
-  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
-    if (state.scoredTournaments.includes(TOURNAMENTS[i].id)) {
-      latestId = TOURNAMENTS[i].id;
-      break;
-    }
-  }
+  const latestId = getMostRecentPositiveEarningsTournamentId();
 
   TOURNAMENTS.forEach(t => {
     const opt = document.createElement('option');
@@ -707,6 +815,26 @@ function populateLastEventSelect() {
   });
 
   select.value = latestId || TOURNAMENTS[TOURNAMENTS.length - 1].id;
+}
+
+function getMostRecentPositiveEarningsTournamentId() {
+  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
+    const tId = TOURNAMENTS[i].id;
+    for (let pIdx = 0; pIdx < state.participants.length; pIdx++) {
+      const pick = state.picks[`${pIdx}-${tId}`];
+      if (pick && pick.earnings != null && pick.earnings > 0) {
+        return tId;
+      }
+    }
+  }
+
+  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
+    if (state.scoredTournaments.includes(TOURNAMENTS[i].id)) {
+      return TOURNAMENTS[i].id;
+    }
+  }
+
+  return null;
 }
 
 function renderStandings() {
@@ -749,21 +877,24 @@ function renderStandings() {
 
   const leaderTotal = participantStats[0].totalEarnings;
 
-  const selectedTid = document.getElementById('lastEventSelect').value;
+  const lastEventSelect = document.getElementById('lastEventSelect');
+  let selectedTid = lastEventSelect.value;
+  if (!selectedTid) {
+    selectedTid = getMostRecentPositiveEarningsTournamentId() || TOURNAMENTS[TOURNAMENTS.length - 1].id;
+    lastEventSelect.value = selectedTid;
+  }
   const selectedTournament = TOURNAMENTS.find(t => t.id === selectedTid);
 
   participantStats.forEach(s => {
-    if (selectedTid) {
-      const key = `${s.pIdx}-${selectedTid}`;
-      const pick = state.picks[key];
-      s.lastEarnings = (pick && pick.earnings != null) ? pick.earnings : 0;
-    }
+    const key = `${s.pIdx}-${selectedTid}`;
+    const pick = state.picks[key];
+    s.lastEarnings = (pick && pick.earnings != null) ? pick.earnings : 0;
   });
 
   let tableHTML = '<table class="leaderboard-table"><thead><tr>';
   tableHTML += '<th style="text-align:center;">Rank</th>';
   tableHTML += '<th style="text-align:left;">Player</th>';
-  tableHTML += `<th style="text-align:center;">Last Event${selectedTournament ? ' (' + selectedTournament.abbr + ')' : ''}</th>`;
+  tableHTML += `<th style="text-align:center;">Latest Event${selectedTournament ? ' (' + selectedTournament.abbr + ')' : ''}</th>`;
   tableHTML += '<th style="text-align:center;">Total</th>';
   tableHTML += '<th style="text-align:center;">Back</th>';
   tableHTML += '<th style="text-align:center;">Missed Cuts</th>';
@@ -771,7 +902,9 @@ function renderStandings() {
 
   participantStats.forEach(s => {
     const isLeader = s.totalEarnings === leaderTotal;
-    const back = isLeader ? '-' : `- ${formatMoney(leaderTotal - s.totalEarnings)}`;
+    const backAmount = leaderTotal - s.totalEarnings;
+    const back = isLeader ? '-' : formatBackMoney(backAmount);
+    const backClass = isLeader ? 'back' : 'back negative';
     const cutsDisplay = s.missedCuts === 0 ? '-' : s.missedCuts;
 
     tableHTML += `<tr${isLeader ? ' class="leader"' : ''}>`;
@@ -779,7 +912,7 @@ function renderStandings() {
     tableHTML += `<td class="name">${s.name}</td>`;
     tableHTML += `<td class="money">${formatMoney(s.lastEarnings)}</td>`;
     tableHTML += `<td class="money">${formatMoney(s.totalEarnings)}</td>`;
-    tableHTML += `<td class="back">${back}</td>`;
+    tableHTML += `<td class="${backClass}">${back}</td>`;
     tableHTML += `<td class="cuts">${cutsDisplay}</td>`;
     tableHTML += '</tr>';
   });
@@ -788,17 +921,25 @@ function renderStandings() {
   container.innerHTML = tableHTML;
 }
 
+function getMostRecentTournamentWithAnyPickId() {
+  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
+    const tId = TOURNAMENTS[i].id;
+    for (let pIdx = 0; pIdx < state.participants.length; pIdx++) {
+      const pick = state.picks[`${pIdx}-${tId}`];
+      if (pick && pick.golfer && pick.golfer.trim()) {
+        return tId;
+      }
+    }
+  }
+
+  return null;
+}
+
 function populateCurrentWeekSelect() {
   const select = document.getElementById('currentWeekSelect');
   select.innerHTML = '';
 
-  let latestId = null;
-  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
-    if (state.scoredTournaments.includes(TOURNAMENTS[i].id)) {
-      latestId = TOURNAMENTS[i].id;
-      break;
-    }
-  }
+  const latestPickedId = getMostRecentTournamentWithAnyPickId();
 
   TOURNAMENTS.forEach(t => {
     const opt = document.createElement('option');
@@ -808,7 +949,7 @@ function populateCurrentWeekSelect() {
     select.appendChild(opt);
   });
 
-  select.value = latestId || TOURNAMENTS[TOURNAMENTS.length - 1].id;
+  select.value = latestPickedId || TOURNAMENTS[TOURNAMENTS.length - 1].id;
 }
 
 async function loadCurrentWeekLeaderboard() {
@@ -833,28 +974,149 @@ async function loadCurrentWeekLeaderboard() {
     const tournamentStatus = data.events?.[0]?.status?.type?.name || '';
     const competitors = data.events?.[0]?.competitions?.[0]?.competitors || [];
 
+    const formatTeeTime = (competitor) => {
+      const teeTime = competitor?.status?.teeTime || competitor?.teeTime;
+      if (teeTime) {
+        const teeDate = new Date(teeTime);
+        return teeDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      }
+      return null;
+    };
+
+    const getThruDisplay = (competitor) => {
+      if (competitor?.status?.thru != null) {
+        if (competitor.status.thru < 1) {
+          return formatTeeTime(competitor) || '--';
+        }
+        return competitor.status.thru >= 18 ? 'F' : competitor.status.thru.toString();
+      }
+
+      if (competitor?.status?.hole != null) {
+        if (competitor.status.hole < 1) {
+          return formatTeeTime(competitor) || '--';
+        }
+        return competitor.status.hole >= 18 ? 'F' : competitor.status.hole.toString();
+      }
+
+      if (competitor?.status?.displayThru) {
+        return competitor.status.displayThru;
+      }
+
+      if (competitor?.thru != null) {
+        if (competitor.thru < 1) {
+          return formatTeeTime(competitor) || '--';
+        }
+        return competitor.thru >= 18 ? 'F' : competitor.thru.toString();
+      }
+
+      const detail = competitor?.status?.displayValue || competitor?.status?.detail || competitor?.status?.type?.detail || '';
+      const detailLower = detail.toLowerCase();
+      const thruMatch = detailLower.match(/(?:thru|through)\s*(\d{1,2})/);
+      if (thruMatch) return thruMatch[1];
+
+      return '--';
+    };
+
+    const isTeeTime = (thruValue) => {
+      return thruValue && /\d{1,2}:\d{2}\s*(AM|PM)/i.test(thruValue);
+    };
+
+    const getTotalScoreDisplay = (competitor) => {
+      const scoreToParStat = (competitor?.statistics || []).find(s => s?.name === 'scoreToPar' && s?.displayValue != null);
+      if (scoreToParStat && scoreToParStat.displayValue !== '-' && scoreToParStat.displayValue !== '--') {
+        return scoreToParStat.displayValue;
+      }
+
+      if (competitor?.score?.displayValue && competitor.score.displayValue !== '-') {
+        return competitor.score.displayValue;
+      }
+
+      return '--';
+    };
+
+    const getTodayScoreDisplay = (competitor) => {
+      const statusDetail = competitor?.status?.detail || '';
+      const detailMatch = statusDetail.match(/^([+-]?\d+|E)\(\d+\)$/i);
+      if (detailMatch) {
+        return detailMatch[1].toUpperCase();
+      }
+
+      const currentPeriod = competitor?.status?.period;
+      if (currentPeriod && competitor?.linescores) {
+        const currentLine = competitor.linescores.find(line => line.period === currentPeriod);
+        if (currentLine && currentLine.displayValue && currentLine.displayValue !== '-') {
+          return currentLine.displayValue;
+        }
+      }
+
+      return '--';
+    };
+
+    const getNumericPosition = (positionDisplay) => {
+      if (!positionDisplay) return null;
+      const match = positionDisplay.match(/^(?:T)?(\d{1,2})$/i);
+      if (!match) return null;
+      return parseInt(match[1], 10);
+    };
+
+    const parsePurseAmount = (purseText) => {
+      if (!purseText) return 0;
+      return parseInt(purseText.replace(/[$,]/g, ''), 10) || 0;
+    };
+
+    const payoutScale = parsePurseAmount(tournament?.purse) / PEBBLE_PROAM_2026_PURSE;
+    const getRankPayout = (rank) => {
+      if (!Number.isInteger(rank) || rank < 1 || rank > PEBBLE_PROAM_2026_PAYOUTS.length) return 0;
+      const base = PEBBLE_PROAM_2026_PAYOUTS[rank - 1];
+      const scaled = Math.round(base * (payoutScale || 1));
+      return Math.max(0, scaled);
+    };
+
+    const tieCountsByPosition = {};
+    competitors.forEach(c => {
+      const statusDetail = (c?.status?.type?.detail || '').toLowerCase();
+      if (statusDetail.includes('cut') || statusDetail.includes('withdrawn') || statusDetail.includes('disqualified')) return;
+      const posDisplay = c?.status?.position?.displayName || '';
+      const posNum = getNumericPosition(posDisplay);
+      if (!posNum) return;
+      tieCountsByPosition[posNum] = (tieCountsByPosition[posNum] || 0) + 1;
+    });
+
+    const getEstimatedPayout = (positionDisplay) => {
+      const posNum = getNumericPosition(positionDisplay);
+      if (!posNum) return '--';
+
+      const tieCount = tieCountsByPosition[posNum] || 1;
+      let total = 0;
+      let slots = 0;
+
+      for (let rank = posNum; rank < posNum + tieCount; rank++) {
+        const payout = getRankPayout(rank);
+        if (payout <= 0) continue;
+        total += payout;
+        slots += 1;
+      }
+
+      if (!slots) return '--';
+      return formatMoney(Math.round(total / slots));
+    };
+
     const golferMap = {};
     competitors.forEach(c => {
       const nameLower = c.athlete.displayName.toLowerCase();
       let pos = c.status.position?.displayName || '--';
-      let total = c.score?.displayValue || '--';
+      let total = getTotalScoreDisplay(c);
       let thru = '--';
-      let today = '--';
+      let today = getTodayScoreDisplay(c);
       let posNum = Infinity;
       let isCut = false;
 
-      if (tournamentStatus === 'STATUS_SCHEDULED' && c.teeTime) {
-        const teeDate = new Date(c.teeTime);
-        thru = teeDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      const teeTimeValue = c.status?.teeTime || c.teeTime;
+      if (tournamentStatus === 'STATUS_SCHEDULED' && teeTimeValue) {
+        thru = formatTeeTime(c);
+        today = '-';
       } else {
-        if (c.thru != null) {
-          thru = c.thru >= 18 ? 'F' : c.thru.toString();
-        }
-        if (c.linescores && c.linescores.length > 0) {
-          const lastRound = c.linescores[c.linescores.length - 1];
-          if (lastRound?.displayValue) today = lastRound.displayValue;
-        }
-
+        thru = getThruDisplay(c);
         const statusDetail = (c.status.type.detail || '').toLowerCase();
         if (statusDetail.includes('cut')) {
           pos = 'CUT';
@@ -873,6 +1135,12 @@ async function loadCurrentWeekLeaderboard() {
           thru = '--';
           today = '--';
         } else {
+          if (thru === '--' && teeTimeValue) {
+            thru = formatTeeTime(c) || '--';
+          }
+          if (isTeeTime(thru)) {
+            today = '-';
+          }
           posNum = parseInt(pos.replace('T', '')) || Infinity;
         }
       }
@@ -883,6 +1151,7 @@ async function loadCurrentWeekLeaderboard() {
         total,
         thru,
         today,
+        estimatedPayout: getEstimatedPayout(pos),
         posNum,
         isCut
       };
@@ -898,6 +1167,7 @@ async function loadCurrentWeekLeaderboard() {
         total: '--',
         thru: '--',
         today: '--',
+        estimatedPayout: '--',
         posNum: Infinity,
         isCut: false
       };
@@ -924,6 +1194,7 @@ async function loadCurrentWeekLeaderboard() {
           entry.total = result.total;
           entry.thru = result.thru;
           entry.today = result.today;
+          entry.estimatedPayout = result.estimatedPayout;
           entry.posNum = result.posNum;
           entry.isCut = result.isCut;
         } else {
@@ -948,6 +1219,7 @@ async function loadCurrentWeekLeaderboard() {
     tableHTML += '<th>Total</th>';
     tableHTML += '<th>Thru</th>';
     tableHTML += '<th>Today</th>';
+    tableHTML += '<th>Est. Payout</th>';
     tableHTML += '</tr></thead><tbody>';
 
     entries.forEach(e => {
@@ -960,6 +1232,7 @@ async function loadCurrentWeekLeaderboard() {
       tableHTML += `<td class="total">${e.total}</td>`;
       tableHTML += `<td class="thru">${e.thru}</td>`;
       tableHTML += `<td class="today">${e.today}</td>`;
+      tableHTML += `<td class="total">${e.estimatedPayout}</td>`;
       tableHTML += `</tr>`;
     });
 
@@ -1117,18 +1390,62 @@ function editParticipantName(pIdx) {
   }
 }
 
-async function handleScoreTournament() {
-  const select = document.getElementById('tournamentSelect');
-  const tId = select.value;
-  if (!tId) return;
-  await scoreTournament(tId);
+async function getMostRecentCompletedTournamentId() {
+  for (let i = TOURNAMENTS.length - 1; i >= 0; i--) {
+    const tournament = TOURNAMENTS[i];
+    try {
+      const url = `https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard?event=${tournament.id}`;
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const statusName = data?.events?.[0]?.status?.type?.name || '';
+      if (statusName === 'STATUS_FINAL' || statusName === 'STATUS_POST') {
+        return tournament.id;
+      }
+    } catch (err) {
+      console.warn('Failed status check for', tournament.id, err);
+    }
+  }
+  return null;
 }
 
-async function scoreTournament(tournamentId) {
+async function selectMostRecentCompletedTournamentInDropdown() {
+  const select = document.getElementById('tournamentSelect');
+  const latestCompletedId = await getMostRecentCompletedTournamentId();
+  if (latestCompletedId && TOURNAMENTS.some(t => t.id === latestCompletedId)) {
+    select.value = latestCompletedId;
+    return latestCompletedId;
+  }
+  return select.value || TOURNAMENTS[TOURNAMENTS.length - 1].id;
+}
+
+async function handleScoreTournament() {
+  const select = document.getElementById('tournamentSelect');
+  const statusEl = document.getElementById('scoreStatus');
+  const selectedCompletedId = await selectMostRecentCompletedTournamentInDropdown();
+  const selectedIndex = TOURNAMENTS.findIndex(t => t.id === selectedCompletedId);
+  if (selectedIndex < 0) return;
+
+  statusEl.textContent = `Refreshing through ${TOURNAMENTS[selectedIndex].abbr} (0/${selectedIndex + 1})...`;
+  statusEl.style.color = '#7f8c9b';
+
+  for (let i = 0; i <= selectedIndex; i++) {
+    await scoreTournament(TOURNAMENTS[i].id, { suppressModal: true, suppressStatus: true });
+    statusEl.textContent = `Refreshing through ${TOURNAMENTS[selectedIndex].abbr} (${i + 1}/${selectedIndex + 1})...`;
+  }
+
+  statusEl.textContent = `Updated ${selectedIndex + 1} tournaments through ${TOURNAMENTS[selectedIndex].name}.`;
+  statusEl.style.color = '#2ecc71';
+}
+
+async function scoreTournament(tournamentId, options = {}) {
+  const { suppressModal = false, suppressStatus = false } = options;
   const tournament = TOURNAMENTS.find(t => t.id === tournamentId);
   const statusEl = document.getElementById('scoreStatus');
-  statusEl.textContent = `Fetching ${tournament.abbr}...`;
-  statusEl.style.color = '#7f8c9b';
+  if (!suppressStatus) {
+    statusEl.textContent = `Fetching ${tournament.abbr}...`;
+    statusEl.style.color = '#7f8c9b';
+  }
 
   try {
     const url = `https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard?event=${tournamentId}`;
@@ -1190,15 +1507,22 @@ async function scoreTournament(tournamentId) {
     saveState();
     renderAll();
 
-    statusEl.textContent = `${tournament.abbr} scored!`;
-    statusEl.style.color = '#2ecc71';
+    if (!suppressStatus) {
+      statusEl.textContent = `${tournament.abbr} scored!`;
+      statusEl.style.color = '#2ecc71';
+    }
 
-    showScoreResults(tournament.name, matchResults);
+    if (!suppressModal) {
+      showScoreResults(tournament.name, matchResults);
+    }
 
   } catch (err) {
-    statusEl.textContent = `Error: ${err.message}`;
-    statusEl.style.color = '#e74c3c';
+    if (!suppressStatus) {
+      statusEl.textContent = `Error: ${err.message}`;
+      statusEl.style.color = '#e74c3c';
+    }
     console.error('Scoring error:', err);
+    throw err;
   }
 }
 
@@ -1270,8 +1594,50 @@ function resetAllData() {
   if (!confirm('Are you sure you want to reset ALL data? This cannot be undone.')) return;
   if (!confirm('Really delete all picks and scores?')) return;
   state = {
-    participants: ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5', 'Player 6', 'Player 7'],
-    picks: {},
+    participants: ['Andrew Vlosak', 'Van Ainalakis', 'Joe Vlosak', 'Ben Wilson', 'Kevin Fleck', 'Bryan Stresney', 'Matt Slavik'],
+    picks: {
+      '0-401811928': { golfer: 'Si Woo Kim', earnings: null, position: null },
+      '0-401811929': { golfer: 'Matt Fitzpatrick', earnings: null, position: null },
+      '0-401811930': { golfer: 'Max Greyserman', earnings: null, position: null },
+      '0-401811931': { golfer: 'Scottie Scheffler', earnings: null, position: null },
+      '0-401811932': { golfer: 'Chris Gotterup', earnings: null, position: null },
+
+      '1-401811928': { golfer: 'Keegan Bradley', earnings: null, position: null },
+      '1-401811929': { golfer: 'J.T. Poston', earnings: null, position: null },
+      '1-401811930': { golfer: 'Wyndham Clark', earnings: null, position: null },
+      '1-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+      '1-401811932': { golfer: 'Russell Henley', earnings: null, position: null },
+
+      '2-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
+      '2-401811929': { golfer: 'Robert MacIntyre', earnings: null, position: null },
+      '2-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
+      '2-401811931': { golfer: 'Maverick McNealy', earnings: null, position: null },
+      '2-401811932': { golfer: 'Si Woo Kim', earnings: null, position: null },
+
+      '3-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
+      '3-401811929': { golfer: 'Russell Henley', earnings: null, position: null },
+      '3-401811930': { golfer: 'Ludvig Åberg', earnings: null, position: null },
+      '3-401811931': { golfer: 'Xander Schauffele', earnings: null, position: null },
+      '3-401811932': { golfer: 'Scottie Scheffler', earnings: null, position: null },
+
+      '4-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
+      '4-401811929': { golfer: 'Sepp Straka', earnings: null, position: null },
+      '4-401811930': { golfer: 'Jason Day', earnings: null, position: null },
+      '4-401811931': { golfer: 'Jake Knapp', earnings: null, position: null },
+      '4-401811932': { golfer: 'Scottie Scheffler', earnings: null, position: null },
+
+      '5-401811928': { golfer: 'Harry Hall', earnings: null, position: null },
+      '5-401811929': { golfer: 'Si Woo Kim', earnings: null, position: null },
+      '5-401811930': { golfer: 'Sam Stevens', earnings: null, position: null },
+      '5-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
+      '5-401811932': { golfer: 'Akshay Bhatia', earnings: null, position: null },
+
+      '6-401811928': { golfer: 'Collin Morikawa', earnings: null, position: null },
+      '6-401811929': { golfer: 'Patrick Cantlay', earnings: null, position: null },
+      '6-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
+      '6-401811931': { golfer: 'Ben Griffin', earnings: null, position: null },
+      '6-401811932': { golfer: 'Tommy Fleetwood', earnings: null, position: null }
+    },
     scoredTournaments: []
   };
   saveState();
@@ -1297,9 +1663,10 @@ document.getElementById('scoreResultsModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('scoreResultsModal')) closeScoreResultsModal();
 });
 
-function init() {
+async function init() {
   loadState();
   renderAll();
+  await selectMostRecentCompletedTournamentInDropdown();
 }
 
 init();
