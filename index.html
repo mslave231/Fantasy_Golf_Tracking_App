@@ -422,6 +422,55 @@
       .last-event-control, .current-event-control { flex-direction: column; align-items: flex-start; }
     }
 
+    /* Auto-refresh controls */
+    .auto-refresh-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: #7f8c9b;
+      flex-wrap: wrap;
+    }
+    .auto-refresh-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .auto-refresh-toggle input[type="checkbox"] {
+      accent-color: #2ecc71;
+      cursor: pointer;
+      width: 14px;
+      height: 14px;
+    }
+    .auto-refresh-toggle label {
+      cursor: pointer;
+      font-weight: 600;
+      color: #7f8c9b;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .auto-refresh-countdown {
+      color: #2ecc71;
+      font-weight: 600;
+      font-size: 11px;
+    }
+    .auto-refresh-countdown.paused {
+      color: #7f8c9b;
+    }
+    .last-updated {
+      color: #7f8c9b;
+      font-size: 11px;
+      margin-left: auto;
+    }
+    .last-updated .time-ago {
+      color: #9fb0c2;
+      font-weight: 600;
+    }
+
     /* Hidden file input */
     #importInput { display: none; }
   </style>
@@ -452,6 +501,14 @@
       <select id="currentWeekSelect"></select>
       <button class="refresh-btn" onclick="loadCurrentWeekLeaderboard()">Refresh Live</button>
       <span id="currentWeekStatus" style="color:#7f8c9b;"></span>
+    </div>
+    <div class="auto-refresh-bar" id="autoRefreshBar" style="display:none;">
+      <div class="auto-refresh-toggle">
+        <input type="checkbox" id="autoRefreshCheck" checked>
+        <label for="autoRefreshCheck">Auto-refresh</label>
+      </div>
+      <span class="auto-refresh-countdown" id="autoRefreshCountdown"></span>
+      <span class="last-updated" id="lastUpdated"></span>
     </div>
     <div id="currentWeekContainer"><span style="color:#7f8c9b;">Select an event and click Refresh Live to load.</span></div>
   </div>
@@ -526,7 +583,7 @@ const TOURNAMENTS = [
   { id: "401811930", name: "Farmers Insurance Open", dates: "Jan 29–Feb 1, 2026", abbr: "FIO", isMajor: false, purse: "$9,600,000", purseEst: false },
   { id: "401811931", name: "WM Phoenix Open", dates: "Feb 5–8, 2026", abbr: "PHX", isMajor: false, purse: "$9,600,000", purseEst: false },
   { id: "401811932", name: "AT&T Pebble Beach Pro-Am", dates: "Feb 12–15, 2026", abbr: "PBP", isMajor: false, purse: "$20,000,000", purseEst: false },
-  { id: "401811933", name: "The Genesis Invitational", dates: "Feb 19–22, 2026", abbr: "GEN", isMajor: false, purse: "$20,000,000.00", purseEst: false },
+  { id: "401811933", name: "The Genesis Invitational", dates: "Feb 19–22, 2026", abbr: "GEN", isMajor: false, purse: "$20,000,000", purseEst: false },
   { id: "401811934", name: "Cognizant Classic in The Palm Beaches", dates: "Feb 26–Mar 1, 2026", abbr: "COG", isMajor: false, purse: "$9,600,000", purseEst: false },
   { id: "401811935", name: "Arnold Palmer Invitational", dates: "Mar 5–8, 2026", abbr: "API", isMajor: false, purse: "$20,000,000", purseEst: false },
   { id: "401811936", name: "Puerto Rico Open", dates: "Mar 5–8, 2026", abbr: "PRO", isMajor: false, purse: "$4,000,000", purseEst: false },
@@ -544,29 +601,34 @@ const TOURNAMENTS = [
 ];
 
 
-const PEBBLE_PROAM_2026_PAYOUTS = [
-  3600000, 2160000, 1360000, 960000, 795000, 715000, 665000, 615000, 575000, 535000,
-  495000, 455000, 415000, 375000, 352000, 332000, 312000, 292000, 272000, 252000,
-  232000, 217000, 202000, 187000, 172000, 158000, 150000, 143000, 137000, 131000,
-  125000, 119000, 114000, 109000, 104000, 99000, 94000, 89000, 84000, 80000,
-  76000, 72000, 68000, 64000, 60000, 57000, 54000, 52000, 50000, 48000,
-  47000, 46000, 45000, 44000, 43000, 42000, 41000, 40000, 39500, 39000,
-  38500, 38000, 37500, 37000, 36500, 36000, 35500, 35000, 34750, 34500,
-  34250, 34000, 33750, 33500, 33250, 33000, 32750, 32500, 32250, 32000
+// Standard PGA Tour payout percentages (positions 1-65)
+const PGA_STANDARD_PCT = [
+  18.000, 10.900, 6.900, 4.900, 4.100, 3.625, 3.375, 3.125, 2.925, 2.725,
+  2.525, 2.325, 2.125, 1.925, 1.825, 1.725, 1.625, 1.525, 1.425, 1.325,
+  1.225, 1.125, 1.045, 0.965, 0.885, 0.805, 0.775, 0.745, 0.715, 0.685,
+  0.655, 0.625, 0.595, 0.570, 0.545, 0.520, 0.495, 0.475, 0.455, 0.435,
+  0.415, 0.395, 0.375, 0.355, 0.335, 0.315, 0.295, 0.279, 0.265, 0.257,
+  0.251, 0.245, 0.241, 0.237, 0.235, 0.233, 0.231, 0.229, 0.227, 0.225,
+  0.223, 0.221, 0.219, 0.217, 0.215
 ];
-const PEBBLE_PROAM_2026_PURSE = 20000000;
 
-const GENESIS_2026_PAYOUTS = [
-  4000000, 2200000, 1400000, 1000000, 840000, 760000, 700000, 646000, 600000, 556000,
-  514000, 472000, 430000, 389000, 369000, 349000, 329000, 309000, 289000, 269000,
-  250000, 232000, 214000, 196000, 178000, 160000, 153500, 147000, 141000, 134500,
-  128000, 122000, 116000, 111000, 106000, 101000, 96000, 92000, 88000, 84000,
-  80000, 76000, 72000, 68000, 64000, 61000, 58000, 56000, 54000, 52000,
-  51000, 50000, 49000, 48000, 47000, 46000, 45000, 44000, 43500, 43000,
-  42500, 42000, 41000, 40000, 39000, 38000, 37000, 36000, 35000, 34000,
-  33000, 32000, 31000, 30000
+// Masters payout percentages (positions 1-50, winner gets 20%)
+const MASTERS_PCT = [
+  20.000, 10.800, 6.800, 4.800, 4.000, 3.600, 3.350, 3.100, 2.900, 2.700,
+  2.500, 2.300, 2.100, 1.900, 1.800, 1.700, 1.600, 1.500, 1.400, 1.300,
+  1.200, 1.120, 1.040, 0.960, 0.880, 0.800, 0.770, 0.740, 0.710, 0.680,
+  0.650, 0.620, 0.590, 0.570, 0.540, 0.520, 0.490, 0.470, 0.450, 0.430,
+  0.410, 0.390, 0.370, 0.350, 0.330, 0.310, 0.290, 0.274, 0.260, 0.252
 ];
-const GENESIS_2026_PURSE = 20000000;
+
+// Zurich Classic team payout percentages (per player, positions 1-36 teams)
+// Teams combine adjacent individual positions, split evenly
+const ZURICH_TEAM_PCT = [
+  14.450, 5.900, 3.863, 2.838, 2.838, 2.838, 2.838, 1.675, 1.675, 1.275,
+  1.275, 0.915, 0.915, 0.915, 0.915, 0.915, 0.915, 0.545, 0.545, 0.545,
+  0.545, 0.545, 0.545, 0.398, 0.398, 0.365, 0.365, 0.330, 0.330, 0.330,
+  0.310, 0.295, 0.295, 0.295, 0.280, 0.275
+];
 
 const STORAGE_KEY = 'fantasyGolfLeague';
 const DATA_VERSION = '2026-v3';
@@ -961,12 +1023,31 @@ async function loadCurrentWeekLeaderboard() {
     const tournamentStatus = data.events?.[0]?.status?.type?.name || '';
     const competitors = data.events?.[0]?.competitions?.[0]?.competitors || [];
 
+    const formatTeeTime = (competitor) => {
+      const teeTime = competitor?.status?.teeTime || competitor?.teeTime;
+      if (teeTime) {
+        const teeDate = new Date(teeTime);
+        return teeDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      }
+      return null;
+    };
+
+    const isTeeTimeDisplay = (thruValue) => {
+      return thruValue && /\d{1,2}:\d{2}\s*(AM|PM)/i.test(thruValue);
+    };
+
     const getThruDisplay = (competitor) => {
       if (competitor?.status?.thru != null) {
+        if (competitor.status.thru < 1) {
+          return formatTeeTime(competitor) || '--';
+        }
         return competitor.status.thru >= 18 ? 'F' : competitor.status.thru.toString();
       }
 
       if (competitor?.status?.hole != null) {
+        if (competitor.status.hole < 1) {
+          return formatTeeTime(competitor) || '--';
+        }
         return competitor.status.hole >= 18 ? 'F' : competitor.status.hole.toString();
       }
 
@@ -975,6 +1056,9 @@ async function loadCurrentWeekLeaderboard() {
       }
 
       if (competitor?.thru != null) {
+        if (competitor.thru < 1) {
+          return formatTeeTime(competitor) || '--';
+        }
         return competitor.thru >= 18 ? 'F' : competitor.thru.toString();
       }
 
@@ -1029,17 +1113,22 @@ async function loadCurrentWeekLeaderboard() {
 
     const parsePurseAmount = (purseText) => {
       if (!purseText) return 0;
-      return parseInt(purseText.replace(/[$,]/g, ''), 10) || 0;
+      return parseFloat(purseText.replace(/[$,]/g, '')) || 0;
     };
 
-    const payoutTemplate = tId === '401811933' ? GENESIS_2026_PAYOUTS : PEBBLE_PROAM_2026_PAYOUTS;
-    const payoutTemplatePurse = tId === '401811933' ? GENESIS_2026_PURSE : PEBBLE_PROAM_2026_PURSE;
-    const payoutScale = parsePurseAmount(tournament?.purse) / payoutTemplatePurse;
+    const purseAmount = parsePurseAmount(tournament?.purse);
+    let payoutPctTable;
+    if (tId === '401811941') {
+      payoutPctTable = MASTERS_PCT;           // Masters
+    } else if (tId === '401811943') {
+      payoutPctTable = ZURICH_TEAM_PCT;       // Zurich Classic (team event)
+    } else {
+      payoutPctTable = PGA_STANDARD_PCT;      // All other events (including PGA Champ, PLAYERS, etc.)
+    }
+
     const getRankPayout = (rank) => {
-      if (!Number.isInteger(rank) || rank < 1 || rank > payoutTemplate.length) return 0;
-      const base = payoutTemplate[rank - 1];
-      const scaled = Math.round(base * (payoutScale || 1));
-      return Math.max(0, scaled);
+      if (!Number.isInteger(rank) || rank < 1 || rank > payoutPctTable.length) return 0;
+      return Math.round(purseAmount * payoutPctTable[rank - 1] / 100);
     };
 
     const tieCountsByPosition = {};
@@ -1081,9 +1170,10 @@ async function loadCurrentWeekLeaderboard() {
       let posNum = Infinity;
       let isCut = false;
 
-      if (tournamentStatus === 'STATUS_SCHEDULED' && c.teeTime) {
-        const teeDate = new Date(c.teeTime);
-        thru = teeDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      const teeTimeValue = c.status?.teeTime || c.teeTime;
+      if (tournamentStatus === 'STATUS_SCHEDULED' && teeTimeValue) {
+        thru = formatTeeTime(c) || '--';
+        today = '-';
       } else {
         thru = getThruDisplay(c);
         const statusDetail = (c.status.type.detail || '').toLowerCase();
@@ -1104,9 +1194,11 @@ async function loadCurrentWeekLeaderboard() {
           thru = '--';
           today = '--';
         } else {
-          if (thru === '--' && c.teeTime) {
-            const teeDate = new Date(c.teeTime);
-            thru = teeDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+          if (thru === '--' && teeTimeValue) {
+            thru = formatTeeTime(c) || '--';
+          }
+          if (isTeeTimeDisplay(thru)) {
+            today = '-';
           }
           posNum = parseInt(pos.replace('T', '')) || Infinity;
         }
@@ -1205,7 +1297,7 @@ async function loadCurrentWeekLeaderboard() {
 
     tableHTML += '</tbody></table>';
     container.innerHTML = tableHTML;
-    statusEl.textContent = 'Live - Updated just now';
+    statusEl.textContent = 'Live';
     statusEl.style.color = '#2ecc71';
 
   } catch (err) {
@@ -1629,6 +1721,178 @@ document.getElementById('pickModal').addEventListener('click', (e) => {
 document.getElementById('scoreResultsModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('scoreResultsModal')) closeScoreResultsModal();
 });
+
+// ===== AUTO-REFRESH & LAST UPDATED =====
+let autoRefreshInterval = null;
+let countdownInterval = null;
+let lastUpdatedTime = null;
+let lastUpdatedTickInterval = null;
+const AUTO_REFRESH_SECONDS = 60;
+let countdownRemaining = AUTO_REFRESH_SECONDS;
+
+function parseTournamentDates(dateStr) {
+  // Handles formats like "Jan 15–18, 2026", "Jan 29–Feb 1, 2026", "Apr 30–May 3, 2026"
+  const months = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
+  const match = dateStr.match(/^(\w+)\s+(\d+)–(?:(\w+)\s+)?(\d+),\s+(\d+)$/);
+  if (!match) return null;
+
+  const startMonth = months[match[1]];
+  const startDay = parseInt(match[2]);
+  const endMonth = match[3] ? months[match[3]] : startMonth;
+  const endDay = parseInt(match[4]);
+  const year = parseInt(match[5]);
+
+  if (startMonth == null || endMonth == null) return null;
+
+  const startDate = new Date(year, startMonth, startDay);
+  const endDate = new Date(year, endMonth, endDay, 23, 59, 59);
+  return { startDate, endDate };
+}
+
+function isTournamentInProgress(tournament) {
+  if (!tournament || !tournament.dates) return false;
+  const parsed = parseTournamentDates(tournament.dates);
+  if (!parsed) return false;
+
+  const now = new Date();
+  return now >= parsed.startDate && now <= parsed.endDate;
+}
+
+function updateLastUpdatedDisplay() {
+  const el = document.getElementById('lastUpdated');
+  if (!el || !lastUpdatedTime) {
+    if (el) el.textContent = '';
+    return;
+  }
+
+  const now = new Date();
+  const diffMs = now - lastUpdatedTime;
+  const diffSec = Math.floor(diffMs / 1000);
+
+  let timeAgoText;
+  if (diffSec < 5) {
+    timeAgoText = 'just now';
+  } else if (diffSec < 60) {
+    timeAgoText = `${diffSec}s ago`;
+  } else {
+    const diffMin = Math.floor(diffSec / 60);
+    timeAgoText = diffMin === 1 ? '1 min ago' : `${diffMin} min ago`;
+  }
+
+  el.innerHTML = `Last updated: <span class="time-ago">${timeAgoText}</span>`;
+}
+
+function startLastUpdatedTick() {
+  if (lastUpdatedTickInterval) clearInterval(lastUpdatedTickInterval);
+  lastUpdatedTickInterval = setInterval(updateLastUpdatedDisplay, 5000);
+}
+
+function updateCountdownDisplay() {
+  const el = document.getElementById('autoRefreshCountdown');
+  if (!el) return;
+
+  const checkbox = document.getElementById('autoRefreshCheck');
+  if (!checkbox || !checkbox.checked) {
+    el.textContent = 'Paused';
+    el.classList.add('paused');
+    return;
+  }
+
+  el.classList.remove('paused');
+  el.textContent = `Next refresh in ${countdownRemaining}s`;
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+
+  const select = document.getElementById('currentWeekSelect');
+  const tId = select ? select.value : null;
+  const tournament = tId ? TOURNAMENTS.find(t => t.id === tId) : null;
+  const bar = document.getElementById('autoRefreshBar');
+
+  if (!tournament || !isTournamentInProgress(tournament)) {
+    if (bar) bar.style.display = 'none';
+    return;
+  }
+
+  // Show the auto-refresh bar with all controls
+  if (bar) bar.style.display = 'flex';
+  document.getElementById('autoRefreshCheck').parentElement.style.display = '';
+  document.getElementById('autoRefreshCountdown').style.display = '';
+
+  const checkbox = document.getElementById('autoRefreshCheck');
+  if (!checkbox || !checkbox.checked) {
+    updateCountdownDisplay();
+    return;
+  }
+
+  countdownRemaining = AUTO_REFRESH_SECONDS;
+  updateCountdownDisplay();
+
+  countdownInterval = setInterval(() => {
+    countdownRemaining--;
+    if (countdownRemaining <= 0) {
+      countdownRemaining = AUTO_REFRESH_SECONDS;
+    }
+    updateCountdownDisplay();
+  }, 1000);
+
+  autoRefreshInterval = setInterval(async () => {
+    countdownRemaining = AUTO_REFRESH_SECONDS;
+    await _originalLoadLeaderboard();
+    lastUpdatedTime = new Date();
+    updateLastUpdatedDisplay();
+  }, AUTO_REFRESH_SECONDS * 1000);
+}
+
+function stopAutoRefresh() {
+  if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
+  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+}
+
+// Wire up auto-refresh checkbox
+document.getElementById('autoRefreshCheck').addEventListener('change', () => {
+  startAutoRefresh();
+});
+
+// Wire up event select change to re-evaluate auto-refresh
+document.getElementById('currentWeekSelect').addEventListener('change', () => {
+  stopAutoRefresh();
+  const bar = document.getElementById('autoRefreshBar');
+  if (bar) bar.style.display = 'none';
+  lastUpdatedTime = null;
+  updateLastUpdatedDisplay();
+});
+
+// Patch loadCurrentWeekLeaderboard to record last-updated time and manage auto-refresh
+const _originalLoadLeaderboard = loadCurrentWeekLeaderboard;
+loadCurrentWeekLeaderboard = async function() {
+  await _originalLoadLeaderboard();
+  lastUpdatedTime = new Date();
+  updateLastUpdatedDisplay();
+  startLastUpdatedTick();
+
+  const bar = document.getElementById('autoRefreshBar');
+  const select = document.getElementById('currentWeekSelect');
+  const tId = select ? select.value : null;
+  const tournament = tId ? TOURNAMENTS.find(t => t.id === tId) : null;
+  const inProgress = tournament && isTournamentInProgress(tournament);
+
+  if (bar) bar.style.display = 'flex';
+
+  if (inProgress) {
+    document.getElementById('autoRefreshCheck').parentElement.style.display = '';
+    document.getElementById('autoRefreshCountdown').style.display = '';
+    // Only start auto-refresh if not already running (avoid resetting countdown on each tick)
+    if (!autoRefreshInterval) {
+      startAutoRefresh();
+    }
+  } else {
+    document.getElementById('autoRefreshCheck').parentElement.style.display = 'none';
+    document.getElementById('autoRefreshCountdown').style.display = 'none';
+    stopAutoRefresh();
+  }
+};
 
 async function init() {
   loadState();
