@@ -1078,17 +1078,13 @@ async function loadCurrentWeekLeaderboard() {
     };
 
     const getTotalScoreDisplay = (competitor) => {
-      const statusDetail = competitor?.status?.detail || '';
-      const detailMatch = statusDetail.match(/^([+-]?\d+|E)\(\d+\)$/i);
-      if (detailMatch) {
-        return detailMatch[1].toUpperCase();
-      }
-
+      // Use statistics[0] scoreToPar for the overall tournament total
       const scoreToParStat = (competitor?.statistics || []).find(s => s?.name === 'scoreToPar' && s?.displayValue != null);
-      if (scoreToParStat && scoreToParStat.displayValue !== '-') {
+      if (scoreToParStat && scoreToParStat.displayValue !== '-' && scoreToParStat.displayValue !== '--') {
         return scoreToParStat.displayValue;
       }
 
+      // Fallback to score.displayValue (also the tournament total)
       if (competitor?.score?.displayValue && competitor.score.displayValue !== '-') {
         return competitor.score.displayValue;
       }
@@ -1097,15 +1093,20 @@ async function loadCurrentWeekLeaderboard() {
     };
 
     const getTodayScoreDisplay = (competitor) => {
-      const todayDetail = competitor?.status?.todayDetail || '';
-      const todayDetailMatch = todayDetail.match(/^([+-]?\d+|E)\(\d+\)$/i);
-      if (todayDetailMatch) {
-        return todayDetailMatch[1].toUpperCase();
+      // Parse status.detail for today's score format like "-1(5)" meaning -1 thru 5 holes
+      const statusDetail = competitor?.status?.detail || '';
+      const detailMatch = statusDetail.match(/^([+-]?\d+|E)\(\d+\)$/i);
+      if (detailMatch) {
+        return detailMatch[1].toUpperCase();
       }
 
-      const lineWithScore = (competitor?.linescores || []).find(line => line?.displayValue && line.displayValue !== '-');
-      if (lineWithScore) {
-        return lineWithScore.displayValue;
+      // Use the current round's linescore
+      const currentPeriod = competitor?.status?.period;
+      if (currentPeriod && competitor?.linescores) {
+        const currentLine = competitor.linescores.find(line => line.period === currentPeriod);
+        if (currentLine && currentLine.displayValue && currentLine.displayValue !== '-') {
+          return currentLine.displayValue;
+        }
       }
 
       return '--';
