@@ -1741,60 +1741,16 @@ function importData(event) {
 }
 
 function resetAllData() {
-  if (!confirm('Are you sure you want to reset ALL data? This cannot be undone.')) return;
-  if (!confirm('Really delete all picks and scores?')) return;
+  const password = prompt('Enter admin password to reset all data:');
+  if (password !== '231') {
+    alert('Incorrect password. Reset cancelled.');
+    return;
+  }
+  if (!confirm('Are you sure you want to reset ALL data for everyone? This cannot be undone.')) return;
+  if (!confirm('Last chance — this will wipe all picks and scores for the entire league.')) return;
   state = {
     participants: ['Andrew Vlosak', 'Van Ainalakis', 'Joe Vlosak', 'Ben Wilson', 'Kevin Fleck', 'Bryan Stresney', 'Matt Slavik'],
-    picks: {
-      '0-401811928': { golfer: 'Si Woo Kim', earnings: null, position: null },
-      '0-401811929': { golfer: 'Matt Fitzpatrick', earnings: null, position: null },
-      '0-401811930': { golfer: 'Max Greyserman', earnings: null, position: null },
-      '0-401811931': { golfer: 'Scottie Scheffler', earnings: null, position: null },
-      '0-401811932': { golfer: 'Chris Gotterup', earnings: null, position: null },
-      '0-401811933': { golfer: 'Hideki Matsuyama', earnings: null, position: null },
-
-      '1-401811928': { golfer: 'Keegan Bradley', earnings: null, position: null },
-      '1-401811929': { golfer: 'J.T. Poston', earnings: null, position: null },
-      '1-401811930': { golfer: 'Wyndham Clark', earnings: null, position: null },
-      '1-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
-      '1-401811932': { golfer: 'Russell Henley', earnings: null, position: null },
-      '1-401811933': { golfer: 'Jake Knapp', earnings: null, position: null },
-
-      '2-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
-      '2-401811929': { golfer: 'Robert MacIntyre', earnings: null, position: null },
-      '2-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
-      '2-401811931': { golfer: 'Maverick McNealy', earnings: null, position: null },
-      '2-401811932': { golfer: 'Si Woo Kim', earnings: null, position: null },
-      '2-401811933': { golfer: 'Rory McIlroy', earnings: null, position: null },
-
-      '3-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
-      '3-401811929': { golfer: 'Russell Henley', earnings: null, position: null },
-      '3-401811930': { golfer: 'Ludvig Åberg', earnings: null, position: null },
-      '3-401811931': { golfer: 'Xander Schauffele', earnings: null, position: null },
-      '3-401811932': { golfer: 'Scottie Scheffler', earnings: null, position: null },
-      '3-401811933': { golfer: 'Tommy Fleetwood', earnings: null, position: null },
-
-      '4-401811928': { golfer: 'Ben Griffin', earnings: null, position: null },
-      '4-401811929': { golfer: 'Sepp Straka', earnings: null, position: null },
-      '4-401811930': { golfer: 'Jason Day', earnings: null, position: null },
-      '4-401811931': { golfer: 'Jake Knapp', earnings: null, position: null },
-      '4-401811932': { golfer: 'Scottie Scheffler', earnings: null, position: null },
-      '4-401811933': { golfer: 'Tommy Fleetwood', earnings: null, position: null },
-
-      '5-401811928': { golfer: 'Harry Hall', earnings: null, position: null },
-      '5-401811929': { golfer: 'Si Woo Kim', earnings: null, position: null },
-      '5-401811930': { golfer: 'Sam Stevens', earnings: null, position: null },
-      '5-401811931': { golfer: 'Cameron Young', earnings: null, position: null },
-      '5-401811932': { golfer: 'Akshay Bhatia', earnings: null, position: null },
-      '5-401811933': { golfer: 'Tommy Fleetwood', earnings: null, position: null },
-
-      '6-401811928': { golfer: 'Collin Morikawa', earnings: null, position: null },
-      '6-401811929': { golfer: 'Patrick Cantlay', earnings: null, position: null },
-      '6-401811930': { golfer: 'Chris Gotterup', earnings: null, position: null },
-      '6-401811931': { golfer: 'Ben Griffin', earnings: null, position: null },
-      '6-401811932': { golfer: 'Tommy Fleetwood', earnings: null, position: null },
-      '6-401811933': { golfer: 'Si Woo Kim', earnings: null, position: null }
-    },
+    picks: JSON.parse(JSON.stringify(DEFAULT_PICKS)),
     scoredTournaments: []
   };
   saveState();
