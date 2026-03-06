@@ -388,6 +388,34 @@
       color: #a0aab5;
     }
 
+    /* Autocomplete dropdown */
+    .autocomplete-wrapper { position: relative; }
+    .autocomplete-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #162240;
+      border: 1px solid #2ecc71;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 200;
+      display: none;
+    }
+    .autocomplete-dropdown.active { display: block; }
+    .autocomplete-item {
+      padding: 8px 14px;
+      font-size: 14px;
+      color: #e0e6ed;
+      cursor: pointer;
+    }
+    .autocomplete-item:hover, .autocomplete-item.highlighted {
+      background: #2a3a5c;
+      color: #2ecc71;
+    }
+
     /* Score results table */
     .score-results-table {
       width: 100%;
@@ -539,7 +567,10 @@
       <h2 id="pickModalTitle">Enter Pick</h2>
       <div class="modal-sub" id="pickModalSub"></div>
       <label for="golferInput">Golfer Name</label>
-      <input type="text" id="golferInput" placeholder="e.g. Scottie Scheffler" autocomplete="off">
+      <div class="autocomplete-wrapper">
+        <input type="text" id="golferInput" placeholder="e.g. Scottie Scheffler" autocomplete="off">
+        <div class="autocomplete-dropdown" id="golferSuggestions"></div>
+      </div>
       <div class="validation-msg" id="validationMsg"></div>
       <div class="used-golfers" id="usedGolfersSection">
         <div class="used-golfers-title">Already picked this season:</div>
@@ -1455,10 +1486,12 @@ function openPickModal(pIdx, tId) {
   document.getElementById('pickModal').classList.add('active');
   input.focus();
   input.select();
+  fetchGolferNames(tId); // Prefetch for autocomplete
 }
 
 function closePickModal() {
   document.getElementById('pickModal').classList.remove('active');
+  document.getElementById('golferSuggestions').classList.remove('active');
   currentPickContext = { pIdx: null, tId: null };
 }
 
@@ -1948,11 +1981,99 @@ loadCurrentWeekLeaderboard = async function() {
   }
 };
 
+// ===== GOLFER NAME AUTOCOMPLETE =====
+const golferNameCache = {};
+
+async function fetchGolferNames(tournamentId) {
+  if (golferNameCache[tournamentId]) return golferNameCache[tournamentId];
+  try {
+    const url = `https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard?event=${tournamentId}`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const competitors = data?.events?.[0]?.competitions?.[0]?.competitors || [];
+    const names = competitors.map(c => c.athlete.displayName).sort();
+    golferNameCache[tournamentId] = names;
+    return names;
+  } catch (e) {
+    return [];
+  }
+}
+
+function initAutocomplete() {
+  const input = document.getElementById('golferInput');
+  const dropdown = document.getElementById('golferSuggestions');
+  let highlightedIndex = -1;
+
+  function showSuggestions(names) {
+    dropdown.innerHTML = '';
+    if (names.length === 0) {
+      dropdown.classList.remove('active');
+      return;
+    }
+    names.forEach((name) => {
+      const div = document.createElement('div');
+      div.className = 'autocomplete-item';
+      div.textContent = name;
+      div.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        input.value = name;
+        dropdown.classList.remove('active');
+        highlightedIndex = -1;
+      });
+      dropdown.appendChild(div);
+    });
+    highlightedIndex = -1;
+    dropdown.classList.add('active');
+  }
+
+  function hideSuggestions() {
+    dropdown.classList.remove('active');
+    highlightedIndex = -1;
+  }
+
+  input.addEventListener('input', async () => {
+    const val = input.value.trim().toLowerCase();
+    if (!val) { hideSuggestions(); return; }
+    const { tId } = currentPickContext;
+    if (!tId) return;
+    const names = await fetchGolferNames(tId);
+    const filtered = names.filter(n => n.toLowerCase().includes(val));
+    showSuggestions(filtered.slice(0, 10));
+  });
+
+  input.addEventListener('keydown', (e) => {
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    if (!dropdown.classList.contains('active') || items.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      highlightedIndex = Math.min(highlightedIndex + 1, items.length - 1);
+      items.forEach((item, i) => item.classList.toggle('highlighted', i === highlightedIndex));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      highlightedIndex = Math.max(highlightedIndex - 1, 0);
+      items.forEach((item, i) => item.classList.toggle('highlighted', i === highlightedIndex));
+    } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      input.value = items[highlightedIndex].textContent;
+      hideSuggestions();
+    } else if (e.key === 'Escape') {
+      hideSuggestions();
+    }
+  });
+
+  input.addEventListener('blur', () => {
+    setTimeout(hideSuggestions, 150);
+  });
+}
+
 async function init() {
   loadState();        // Fast initial render from local cache
   renderAll();
   await selectMostRecentCompletedTournamentInDropdown();
   initFirebaseListener();  // Connect to Firebase — keeps all users in sync in real time
+  initAutocomplete();
 }
 
 init();
