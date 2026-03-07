@@ -149,8 +149,8 @@
     .grid-wrapper {
       overflow-x: auto;
       overflow-y: hidden;
-      margin: 0;
-      padding: 0 24px 16px;
+      margin: 0 24px;
+      padding: 0 0 16px;
       background: #0f1e36;
       position: relative;
     }
@@ -416,6 +416,127 @@
       color: #2ecc71;
     }
 
+    /* Scorecard modal */
+    .golfer-clickable {
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-color: rgba(46, 204, 113, 0.35);
+      text-underline-offset: 3px;
+      transition: color 0.15s;
+    }
+    .golfer-clickable:hover { color: #2ecc71; }
+    .scorecard-stat-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .scorecard-stat-box {
+      background: #0f1e36;
+      border: 1px solid #2a3a5c;
+      border-radius: 6px;
+      padding: 8px 16px;
+      text-align: center;
+      flex: 1;
+      min-width: 70px;
+    }
+    .scorecard-stat-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #7f8c9b;
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+    .scorecard-stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .scorecard-rounds-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .scorecard-rounds-table th {
+      background: #0f1e36;
+      padding: 7px 10px;
+      text-align: center;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #7f8c9b;
+      font-weight: 600;
+      border-bottom: 1px solid #2a3a5c;
+    }
+    .scorecard-rounds-table th.left { text-align: left; }
+    .scorecard-rounds-table td {
+      padding: 9px 10px;
+      text-align: center;
+      border-bottom: 1px solid #1a2a4a;
+      color: #e0e6ed;
+    }
+    .scorecard-rounds-table td.left { text-align: left; color: #7f8c9b; }
+    .scorecard-rounds-table tr:last-child td { border-bottom: none; }
+    .scorecard-rounds-table tr.current-round td { background: rgba(46,204,113,0.06); }
+    .score-under  { color: #2ecc71; font-weight: 700; }           /* birdie */
+    .score-eagle  { color: #f1c40f; font-weight: 700; }           /* eagle or better */
+    .score-over   { color: #e74c3c; font-weight: 700; }           /* bogey */
+    .score-double { color: #c0392b; font-weight: 700; }           /* double bogey+ */
+    .score-even   { color: #e0e6ed; }
+    .scorecard-hole-section { margin-bottom: 14px; }
+    .scorecard-hole-section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #7f8c9b;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .scorecard-hole-wrap { overflow-x: auto; }
+    .scorecard-hole-table {
+      border-collapse: collapse;
+      font-size: 12px;
+      min-width: 340px;
+      width: 100%;
+    }
+    .scorecard-hole-table th {
+      background: #0f1e36;
+      padding: 5px 6px;
+      text-align: center;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #7f8c9b;
+      font-weight: 600;
+      border-bottom: 1px solid #2a3a5c;
+      min-width: 26px;
+    }
+    .scorecard-hole-table th.label-col { text-align: left; min-width: 52px; }
+    .scorecard-hole-table td {
+      padding: 6px 6px;
+      text-align: center;
+      border-bottom: 1px solid #1a2a4a;
+      color: #e0e6ed;
+      min-width: 26px;
+    }
+    .scorecard-hole-table td.label-col { text-align: left; color: #7f8c9b; font-size: 11px; font-weight: 600; }
+    .scorecard-hole-table td.subtotal { font-weight: 700; color: #fff; border-left: 1px solid #2a3a5c; }
+    .scorecard-hole-table tr:last-child td { border-bottom: none; }
+    .scorecard-no-data {
+      color: #7f8c9b;
+      text-align: center;
+      padding: 24px 0;
+      font-size: 13px;
+    }
+    .scorecard-hint {
+      font-size: 11px;
+      color: #7f8c9b;
+      text-align: center;
+      margin-top: 12px;
+    }
+
     /* Score results table */
     .score-results-table {
       width: 100%;
@@ -443,7 +564,7 @@
     /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
       .standings-panel, .current-week-panel, .controls { padding-left: 12px; padding-right: 12px; }
-      .grid-wrapper { padding: 0 12px 12px; }
+      .grid-wrapper { margin: 0 12px; padding: 0 0 12px; }
       .controls { flex-direction: column; align-items: stretch; }
       .controls-spacer { display: none; }
       .header h1 { font-size: 20px; }
@@ -605,6 +726,18 @@
       </div>
     </div>
   </div>
+
+<!-- SCORECARD MODAL -->
+<div class="modal-overlay" id="scorecardModal">
+  <div class="modal" style="max-width:500px;">
+    <h2 id="scorecardModalTitle">Scorecard</h2>
+    <div class="modal-sub" id="scorecardModalSub"></div>
+    <div id="scorecardContent"></div>
+    <div class="modal-actions" style="margin-top:18px;">
+      <button class="btn-primary" onclick="closeScorecardModal()">Close</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -1336,6 +1469,10 @@ async function loadCurrentWeekLeaderboard() {
         posNum,
         isCut
       };
+
+      // Cache full competitor object for scorecard modal
+      if (!liveCompetitorData[tId]) liveCompetitorData[tId] = {};
+      liveCompetitorData[tId][nameLower] = c;
     });
 
     const entries = state.participants.map((pName, pIdx) => {
@@ -1406,9 +1543,14 @@ async function loadCurrentWeekLeaderboard() {
     entries.forEach(e => {
       const rowClass = e.isCut || e.pos === 'CUT' || e.pos === 'NF' || e.pos === 'WD' || e.pos === 'DQ' ? ' class="cut-row"' : '';
       const posDisplay = e.pos === 'CUT' ? 'CUT' : (e.pos === 'NF' ? 'NF' : (e.pos === 'WD' ? 'WD' : (e.pos === 'DQ' ? 'DQ' : e.pos)));
+      const golferKey = e.golfer.toLowerCase().replace(/"/g, '&quot;');
+      const hasData = liveCompetitorData[tId]?.[e.golfer.toLowerCase()];
+      const golferCell = hasData
+        ? `<td class="golfer golfer-clickable" data-golfer="${golferKey}" title="Click to view scorecard">${e.golfer}</td>`
+        : `<td class="golfer">${e.golfer}</td>`;
       tableHTML += `<tr${rowClass}>`;
       tableHTML += `<td class="player">${e.player}</td>`;
-      tableHTML += `<td class="golfer">${e.golfer}</td>`;
+      tableHTML += golferCell;
       tableHTML += `<td class="pos">${posDisplay}</td>`;
       tableHTML += `<td class="total">${e.total}</td>`;
       tableHTML += `<td class="thru">${e.thru}</td>`;
@@ -1419,6 +1561,14 @@ async function loadCurrentWeekLeaderboard() {
 
     tableHTML += '</tbody></table>';
     container.innerHTML = tableHTML;
+
+    // Attach scorecard click listeners
+    container.querySelectorAll('.golfer-clickable').forEach(td => {
+      td.addEventListener('click', () => {
+        openScorecardModal(td.dataset.golfer, tId, tournament);
+      });
+    });
+
     statusEl.textContent = 'Live';
     statusEl.style.color = '#2ecc71';
 
@@ -1448,6 +1598,7 @@ function populateTournamentSelect() {
 
 // ===== PICK MANAGEMENT, SCORING, DATA MANAGEMENT, KEYBOARD SHORTCUTS =====
 let currentPickContext = { pIdx: null, tId: null };
+let liveCompetitorData = {}; // tId -> { nameLower: full competitor object }
 
 function openPickModal(pIdx, tId) {
   const tournament = TOURNAMENTS.find(t => t.id === tId);
@@ -1796,6 +1947,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closePickModal();
     closeScoreResultsModal();
+    closeScorecardModal();
   }
   if (e.key === 'Enter' && document.getElementById('pickModal').classList.contains('active')) {
     savePick();
@@ -1807,6 +1959,9 @@ document.getElementById('pickModal').addEventListener('click', (e) => {
 });
 document.getElementById('scoreResultsModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('scoreResultsModal')) closeScoreResultsModal();
+});
+document.getElementById('scorecardModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('scorecardModal')) closeScorecardModal();
 });
 
 // ===== AUTO-REFRESH & LAST UPDATED =====
@@ -1980,6 +2135,205 @@ loadCurrentWeekLeaderboard = async function() {
     stopAutoRefresh();
   }
 };
+
+// ===== SCORECARD MODAL =====
+
+// Formats a score-vs-par value (e.g. "-2", "E", "+1") with colour spans
+function fmtVsPar(val) {
+  if (val === null || val === undefined || val === '--' || val === '-' || val === '')
+    return '<span style="color:#7f8c9b;">--</span>';
+  const s = String(val).trim();
+  if (s === 'E' || s === '0') return '<span class="score-even">E</span>';
+  const num = parseFloat(s.replace('+', ''));
+  if (!isNaN(num)) {
+    if (num < 0) return `<span class="score-under">${num}</span>`;
+    if (num > 0) return `<span class="score-over">+${num}</span>`;
+    return '<span class="score-even">E</span>';
+  }
+  return `<span style="color:#e0e6ed;">${s}</span>`;
+}
+
+// Builds a front-9 or back-9 hole table block
+function buildHoleTable(holes, sectionLabel) {
+  if (!holes || holes.length === 0) return '';
+
+  const parTotal = holes.reduce((s, h) => s + (h.par ?? 0), 0);
+  let scoreTotal = 0;
+  let allScored = true;
+
+  // Score colour per hole
+  const holeScoreCell = (h) => {
+    const raw   = h.score?.value   ?? h.value   ?? null;
+    const disp  = h.score?.displayValue ?? h.displayValue ?? (raw != null ? String(raw) : null);
+    const par   = h.par ?? null;
+    if (raw == null || disp == null) { allScored = false; return '<td>—</td>'; }
+    scoreTotal += Number(raw);
+    let cls = '';
+    if (par != null) {
+      const diff = Number(raw) - par;
+      if (diff <= -2)     cls = ' class="score-eagle"';
+      else if (diff === -1) cls = ' class="score-under"';
+      else if (diff === 1)  cls = ' class="score-over"';
+      else if (diff >= 2)   cls = ' class="score-double"';
+    }
+    return `<td${cls}>${disp}</td>`;
+  };
+
+  let html = `<div class="scorecard-hole-section">`;
+  html += `<div class="scorecard-hole-section-label">${sectionLabel}</div>`;
+  html += `<div class="scorecard-hole-wrap"><table class="scorecard-hole-table"><thead><tr>`;
+  html += `<th class="label-col"></th>`;
+  holes.forEach(h => { html += `<th>${h.number ?? h.id ?? ''}</th>`; });
+  html += `<th>Total</th></tr></thead><tbody>`;
+
+  // Par row
+  html += `<tr><td class="label-col">Par</td>`;
+  holes.forEach(h => { html += `<td style="color:#7f8c9b;">${h.par ?? '--'}</td>`; });
+  html += `<td class="subtotal" style="color:#7f8c9b;">${parTotal || '--'}</td></tr>`;
+
+  // Score row
+  html += `<tr><td class="label-col" style="color:#fff;">Score</td>`;
+  holes.forEach(h => { html += holeScoreCell(h); });
+  html += `<td class="subtotal">${allScored ? scoreTotal : '--'}</td></tr>`;
+
+  html += `</tbody></table></div></div>`;
+  return html;
+}
+
+async function openScorecardModal(golferNameLower, tId, tournament) {
+  const competitor = liveCompetitorData[tId]?.[golferNameLower];
+  if (!competitor) return;
+
+  const displayName = competitor.athlete?.displayName || golferNameLower;
+  const athleteId   = competitor.athlete?.id;
+
+  document.getElementById('scorecardModalTitle').textContent = displayName;
+  document.getElementById('scorecardModalSub').textContent   = tournament?.name || '';
+
+  const content = document.getElementById('scorecardContent');
+  content.innerHTML = '<div style="color:#7f8c9b;text-align:center;padding:30px 0;">Loading scorecard…</div>';
+  document.getElementById('scorecardModal').classList.add('active');
+
+  // --- Summary stats from cached leaderboard data ---
+  const pos        = competitor.status?.position?.displayName || '--';
+  const totalStat  = (competitor.statistics || []).find(s => s?.name === 'scoreToPar' && s?.displayValue != null);
+  const total      = (totalStat && totalStat.displayValue !== '-' && totalStat.displayValue !== '--')
+                       ? totalStat.displayValue
+                       : (competitor.score?.displayValue || '--');
+  const currentPeriod = competitor.status?.period || null;
+
+  let thruDisplay = '--';
+  if (competitor.status?.thru != null) {
+    const t = competitor.status.thru;
+    thruDisplay = t >= 18 ? 'F' : (t < 1 ? '--' : String(t));
+  } else if (competitor.status?.hole != null) {
+    const h = competitor.status.hole;
+    thruDisplay = h >= 18 ? 'F' : (h < 1 ? '--' : String(h));
+  }
+
+  // --- Try to fetch hole-by-hole scorecard from ESPN ---
+  let allLinescores = competitor.linescores || [];
+  let latestHoleRound = null;   // linescore entry with .holes[] for the most recent round
+
+  try {
+    const url = `https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard?event=${tId}&scorecards=true`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      const comps = data?.events?.[0]?.competitions?.[0]?.competitors || [];
+      const found = athleteId
+        ? comps.find(c => String(c.athlete?.id) === String(athleteId))
+        : comps.find(c => c.athlete?.displayName?.toLowerCase() === golferNameLower);
+
+      if (found) {
+        const richLS = found.linescores || [];
+        if (richLS.length) allLinescores = richLS;
+
+        // Pick the most recent round that has hole data
+        for (let i = richLS.length - 1; i >= 0; i--) {
+          if (richLS[i].holes && richLS[i].holes.length > 0) {
+            latestHoleRound = richLS[i];
+            break;
+          }
+        }
+      }
+    }
+  } catch (e) { /* fall through to round-totals view */ }
+
+  // --- Build HTML ---
+  let html = '';
+
+  // Stat boxes
+  html += '<div class="scorecard-stat-row">';
+  html += `<div class="scorecard-stat-box"><div class="scorecard-stat-label">Position</div><div class="scorecard-stat-value">${pos}</div></div>`;
+  html += `<div class="scorecard-stat-box"><div class="scorecard-stat-label">Total</div><div class="scorecard-stat-value">${fmtVsPar(total)}</div></div>`;
+  if (currentPeriod) {
+    html += `<div class="scorecard-stat-box"><div class="scorecard-stat-label">Round</div><div class="scorecard-stat-value">${currentPeriod}</div></div>`;
+  }
+  if (thruDisplay !== '--') {
+    html += `<div class="scorecard-stat-box"><div class="scorecard-stat-label">Thru</div><div class="scorecard-stat-value">${thruDisplay}</div></div>`;
+  }
+  html += '</div>';
+
+  if (latestHoleRound) {
+    // ── Full 18-hole scorecard for the most recent round ──────────────────
+    const roundNum  = latestHoleRound.period || currentPeriod || '?';
+    const isCurrent = roundNum === currentPeriod;
+    const roundLbl  = isCurrent ? `Round ${roundNum} — In Progress` : `Round ${roundNum} — Final`;
+    const roundScore = latestHoleRound.displayValue || '--';
+
+    html += `<div style="font-size:12px;font-weight:700;color:#2ecc71;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.8px;">`;
+    html += `${roundLbl} &nbsp;<span style="font-weight:400;color:#e0e6ed;">${fmtVsPar(roundScore)}</span></div>`;
+
+    const holes   = latestHoleRound.holes;
+    const front9  = holes.filter(h => (h.number ?? h.id ?? 0) <= 9);
+    const back9   = holes.filter(h => (h.number ?? h.id ?? 0) >= 10);
+
+    html += buildHoleTable(front9, 'Front 9');
+    if (back9.length) html += buildHoleTable(back9, 'Back 9');
+
+    // ── Previous rounds (round totals) ────────────────────────────────────
+    const prevRounds = allLinescores.filter(ls => (ls.period || 0) !== roundNum);
+    if (prevRounds.length) {
+      html += `<div style="margin-top:16px;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#7f8c9b;font-weight:600;margin-bottom:8px;">Previous Rounds</div>`;
+      html += '<table class="scorecard-rounds-table"><thead><tr>';
+      html += '<th class="left">Round</th><th>Score</th></tr></thead><tbody>';
+      prevRounds.forEach((ls, idx) => {
+        const rn = ls.period || (idx + 1);
+        html += `<tr><td class="left">Round ${rn}</td><td>${fmtVsPar(ls.displayValue)}</td></tr>`;
+      });
+      html += `<tr style="border-top:2px solid #2a3a5c;">`;
+      html += `<td class="left" style="font-weight:700;color:#fff;">Tournament Total</td>`;
+      html += `<td style="font-weight:700;">${fmtVsPar(total)}</td></tr>`;
+      html += '</tbody></table>';
+    }
+
+  } else if (allLinescores.length > 0) {
+    // ── Fallback: round totals only ───────────────────────────────────────
+    html += '<table class="scorecard-rounds-table"><thead><tr>';
+    html += '<th class="left">Round</th><th>Score</th></tr></thead><tbody>';
+    allLinescores.forEach((ls, idx) => {
+      const rn      = ls.period || (idx + 1);
+      const isCur   = rn === currentPeriod;
+      html += `<tr${isCur ? ' class="current-round"' : ''}>`;
+      html += `<td class="left">Round ${rn}${isCur ? ' <span style="color:#2ecc71;font-size:11px;">(Current)</span>' : ''}</td>`;
+      html += `<td>${fmtVsPar(ls.displayValue)}</td></tr>`;
+    });
+    html += `<tr style="border-top:2px solid #2a3a5c;">`;
+    html += `<td class="left" style="font-weight:700;color:#fff;">Total</td>`;
+    html += `<td style="font-weight:700;">${fmtVsPar(total)}</td></tr>`;
+    html += '</tbody></table>';
+
+  } else {
+    html += '<div class="scorecard-no-data">No scorecard data available yet for this golfer.</div>';
+  }
+
+  content.innerHTML = html;
+}
+
+function closeScorecardModal() {
+  document.getElementById('scorecardModal').classList.remove('active');
+}
 
 // ===== GOLFER NAME AUTOCOMPLETE =====
 const golferNameCache = {};
