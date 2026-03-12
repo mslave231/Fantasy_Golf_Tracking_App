@@ -116,6 +116,23 @@
     }
     .current-week-table .cut-row { opacity: 0.7; }
 
+    /* Golfer headshot in live leaderboard */
+    .golfer-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .golfer-headshot {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: top;
+      background: #0f1e36;
+      border: 1px solid #2a3a5c;
+      flex-shrink: 0;
+    }
+
     /* ===== CONTROLS BAR ===== */
     .controls {
       display: flex;
@@ -1467,7 +1484,8 @@ async function loadCurrentWeekLeaderboard() {
         today,
         estimatedPayout: getEstimatedPayout(pos),
         posNum,
-        isCut
+        isCut,
+        headshot: c.athlete.headshot?.href || `https://a.espncdn.com/i/headshots/golf/players/full/${c.athlete.id}.png`
       };
 
       // Cache full competitor object for scorecard modal
@@ -1487,7 +1505,8 @@ async function loadCurrentWeekLeaderboard() {
         today: '--',
         estimatedPayout: '--',
         posNum: Infinity,
-        isCut: false
+        isCut: false,
+        headshot: null
       };
 
       if (pick) {
@@ -1515,6 +1534,7 @@ async function loadCurrentWeekLeaderboard() {
           entry.estimatedPayout = result.estimatedPayout;
           entry.posNum = result.posNum;
           entry.isCut = result.isCut;
+          entry.headshot = result.headshot || null;
         } else {
           entry.pos = 'NF';
         }
@@ -1545,9 +1565,13 @@ async function loadCurrentWeekLeaderboard() {
       const posDisplay = e.pos === 'CUT' ? 'CUT' : (e.pos === 'NF' ? 'NF' : (e.pos === 'WD' ? 'WD' : (e.pos === 'DQ' ? 'DQ' : e.pos)));
       const golferKey = e.golfer.toLowerCase().replace(/"/g, '&quot;');
       const hasData = liveCompetitorData[tId]?.[e.golfer.toLowerCase()];
+      const headshotImg = e.headshot
+        ? `<img class="golfer-headshot" src="${e.headshot}" alt="" onerror="this.style.display='none'">`
+        : '';
+      const golferInner = `<div class="golfer-cell">${headshotImg}<span>${e.golfer}</span></div>`;
       const golferCell = hasData
-        ? `<td class="golfer golfer-clickable" data-golfer="${golferKey}" title="Click to view scorecard">${e.golfer}</td>`
-        : `<td class="golfer">${e.golfer}</td>`;
+        ? `<td class="golfer golfer-clickable" data-golfer="${golferKey}" title="Click to view scorecard">${golferInner}</td>`
+        : `<td class="golfer">${golferInner}</td>`;
       tableHTML += `<tr${rowClass}>`;
       tableHTML += `<td class="player">${e.player}</td>`;
       tableHTML += golferCell;
