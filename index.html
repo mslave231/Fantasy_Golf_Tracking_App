@@ -1119,6 +1119,15 @@ function renderGrid() {
         golferDiv.title = pick.golfer;
         td.appendChild(golferDiv);
 
+        if (isZurichTournament(t.id) && pick.teammate) {
+          const teammateDiv = document.createElement('div');
+          teammateDiv.className = 'pick-golfer';
+          teammateDiv.style.color = '#9fb0c2';
+          teammateDiv.textContent = pick.teammate;
+          teammateDiv.title = pick.teammate;
+          td.appendChild(teammateDiv);
+        }
+
         if (pick.earnings != null) {
           const posDiv = document.createElement('div');
           posDiv.className = 'pick-position';
