@@ -729,16 +729,6 @@
         <input type="text" id="teammateInput" readonly placeholder="Select a Zurich golfer">
       </div>
       <div class="validation-msg" id="validationMsg"></div>
-      <label for="golferInput">Golfer Name</label>
-      <div class="autocomplete-wrapper">
-        <input type="text" id="golferInput" placeholder="e.g. Scottie Scheffler" autocomplete="off">
-        <div class="autocomplete-dropdown" id="golferSuggestions"></div>
-      </div>
-      <div id="teammateFieldWrap" style="display:none; margin-top:12px;">
-        <label for="teammateInput">Teammate (Auto-filled)</label>
-        <input type="text" id="teammateInput" readonly placeholder="Select a Zurich golfer">
-      </div>
-      <div class="validation-msg" id="validationMsg"></div>
       <div class="used-golfers" id="usedGolfersSection">
         <div class="used-golfers-title">Already picked this season:</div>
         <ul id="usedGolfersList"></ul>
@@ -1029,22 +1019,6 @@ function getOrdinal(n) {
   if (n === 2) return '2nd';
   if (n === 3) return '3rd';
   return `${n}th`;
-}
-
-function isZurichTournament(tId) {
-  return tId === '401811943';
-}
-
-function getCompetitorAthletes(competitor) {
-  if (competitor?.athlete?.displayName) {
-    return [competitor.athlete];
-  }
-  if (Array.isArray(competitor?.roster)) {
-    return competitor.roster
-      .map(r => r?.athlete)
-      .filter(a => a?.displayName);
-  }
-  return [];
 }
 
 function isZurichTournament(tId) {
@@ -1798,12 +1772,6 @@ function openPickModal(pIdx, tId) {
   input.value = existing ? existing.golfer : '';
   teammateInput.value = existing?.teammate || '';
   teammateWrap.style.display = isZurichTournament(tId) ? 'block' : 'none';
-  const input = document.getElementById('golferInput');
-  const teammateWrap = document.getElementById('teammateFieldWrap');
-  const teammateInput = document.getElementById('teammateInput');
-  input.value = existing ? existing.golfer : '';
-  teammateInput.value = existing?.teammate || '';
-  teammateWrap.style.display = isZurichTournament(tId) ? 'block' : 'none';
 
   const valMsg = document.getElementById('validationMsg');
   valMsg.style.display = 'none';
@@ -1825,12 +1793,6 @@ function openPickModal(pIdx, tId) {
     section.style.display = 'none';
   }
 
-  document.getElementById('pickModal').classList.add('active');
-  input.focus();
-  input.select();
-  fetchGolferNames(tId); // Prefetch for autocomplete
-  updateZurichTeammateField();
-}
   document.getElementById('pickModal').classList.add('active');
   input.focus();
   input.select();
@@ -1886,24 +1848,6 @@ function savePick() {
     return;
   }
 
-  const key = `${pIdx}-${tId}`;
-  const existing = state.picks[key];
-  const teammateName = isZurichTournament(tId)
-    ? (document.getElementById('teammateInput').value || '').trim()
-    : '';
-
-  if (existing && existing.golfer.toLowerCase() !== golferName.toLowerCase() && existing.earnings != null) {
-    state.picks[key] = { golfer: golferName, teammate: teammateName || null, earnings: null, position: null };
-  } else if (existing) {
-    existing.golfer = golferName;
-    if (isZurichTournament(tId)) {
-      existing.teammate = teammateName || null;
-    } else {
-      delete existing.teammate;
-    }
-  } else {
-    state.picks[key] = { golfer: golferName, teammate: teammateName || null, earnings: null, position: null };
-  }
   const key = `${pIdx}-${tId}`;
   const existing = state.picks[key];
   const teammateName = isZurichTournament(tId)
@@ -2028,21 +1972,6 @@ async function scoreTournament(tournamentId, options = {}) {
         resultsMap[a.displayName.toLowerCase()] = { earnings, position, displayName: a.displayName };
       });
     });
-    const resultsMap = {};
-    const teammateMap = {};
-    competitors.forEach(c => {
-      const earningsStr = c.statistics?.[1]?.displayValue || '$0';
-      const earnings = parseEarnings(earningsStr);
-      const position = c.status?.position?.displayName || '-';
-      const athletes = getCompetitorAthletes(c);
-      if (athletes.length === 2) {
-        teammateMap[athletes[0].displayName.toLowerCase()] = athletes[1].displayName;
-        teammateMap[athletes[1].displayName.toLowerCase()] = athletes[0].displayName;
-      }
-      athletes.forEach(a => {
-        resultsMap[a.displayName.toLowerCase()] = { earnings, position, displayName: a.displayName };
-      });
-    });
 
     const matchResults = [];
     state.participants.forEach((pName, pIdx) => {
@@ -2058,14 +1987,6 @@ async function scoreTournament(tournamentId, options = {}) {
             pick.teammate = teammateMap[result.displayName.toLowerCase()] || pick.teammate || null;
           }
           matchResults.push({ participant: pName, golfer: result.displayName, position: result.position, earnings: pick.earnings, matched: true });
-        if (result) {
-          pick.earnings = result.earnings;
-          pick.position = result.position;
-          pick.golfer = result.displayName;
-          if (isZurichTournament(tournamentId)) {
-            pick.teammate = teammateMap[result.displayName.toLowerCase()] || pick.teammate || null;
-          }
-          matchResults.push({ participant: pName, golfer: result.displayName, position: result.position, earnings: result.earnings, matched: true });
         } else {
           const lastName = pick.golfer.trim().split(' ').pop().toLowerCase();
           let found = null;
@@ -2676,78 +2597,10 @@ async function updateZurichTeammateField() {
 async function fetchGolferNames(tournamentId) {
   if (golferNameCache[tournamentId]) return golferNameCache[tournamentId];
   try {
-const golferNameCache = {};
-const zurichTeammateMapCache = {};
-
-async function fetchZurichTeammateMap(tournamentId) {
-  if (!isZurichTournament(tournamentId)) return {};
-  if (zurichTeammateMapCache[tournamentId]) return zurichTeammateMapCache[tournamentId];
-  try {
-    const url = `https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard?event=${tournamentId}`;
-    const res = await fetch(url);
-    if (!res.ok) return {};
-    const data = await res.json();
-    const competitors = data?.events?.[0]?.competitions?.[0]?.competitors || [];
-    const map = {};
-    competitors.forEach(c => {
-      const athletes = getCompetitorAthletes(c);
-      if (athletes.length !== 2) return;
-      const a = athletes[0].displayName;
-      const b = athletes[1].displayName;
-      map[a.toLowerCase()] = b;
-      map[b.toLowerCase()] = a;
-    });
-    zurichTeammateMapCache[tournamentId] = map;
-    return map;
-  } catch (e) {
-    return {};
-  }
-}
-
-async function updateZurichTeammateField() {
-  const { tId } = currentPickContext;
-  const teammateWrap = document.getElementById('teammateFieldWrap');
-  const teammateInput = document.getElementById('teammateInput');
-  const golferInput = document.getElementById('golferInput');
-  if (!teammateWrap || !teammateInput || !golferInput) return;
-  if (!isZurichTournament(tId)) {
-    teammateWrap.style.display = 'none';
-    teammateInput.value = '';
-    return;
-  }
-
-  teammateWrap.style.display = 'block';
-  const entered = golferInput.value.trim().toLowerCase();
-  if (!entered) {
-    teammateInput.value = '';
-    return;
-  }
-  const map = await fetchZurichTeammateMap(tId);
-  teammateInput.value = map[entered] || '';
-}
-
-async function fetchGolferNames(tournamentId) {
-  if (golferNameCache[tournamentId]) return golferNameCache[tournamentId];
-  try {
     const url = `https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard?event=${tournamentId}`;
     const res = await fetch(url);
     if (!res.ok) return [];
     const data = await res.json();
-    const competitors = data?.events?.[0]?.competitions?.[0]?.competitors || [];
-    const names = [];
-    competitors.forEach(c => {
-      getCompetitorAthletes(c).forEach(a => names.push(a.displayName));
-    });
-    const uniqueNames = [...new Set(names)].sort();
-    if (isZurichTournament(tournamentId)) {
-      await fetchZurichTeammateMap(tournamentId);
-    }
-    golferNameCache[tournamentId] = uniqueNames;
-    return uniqueNames;
-  } catch (e) {
-    return [];
-  }
-}
     const competitors = data?.events?.[0]?.competitions?.[0]?.competitors || [];
     const names = [];
     competitors.forEach(c => {
@@ -2786,13 +2639,6 @@ function initAutocomplete() {
         highlightedIndex = -1;
         updateZurichTeammateField();
       });
-      div.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        input.value = name;
-        dropdown.classList.remove('active');
-        highlightedIndex = -1;
-        updateZurichTeammateField();
-      });
       dropdown.appendChild(div);
     });
     highlightedIndex = -1;
@@ -2804,10 +2650,6 @@ function initAutocomplete() {
     highlightedIndex = -1;
   }
 
-  input.addEventListener('input', async () => {
-    const val = input.value.trim().toLowerCase();
-    updateZurichTeammateField();
-    if (!val) { hideSuggestions(); return; }
   input.addEventListener('input', async () => {
     const val = input.value.trim().toLowerCase();
     updateZurichTeammateField();
@@ -2830,12 +2672,6 @@ function initAutocomplete() {
       e.preventDefault();
       highlightedIndex = Math.max(highlightedIndex - 1, 0);
       items.forEach((item, i) => item.classList.toggle('highlighted', i === highlightedIndex));
-    } else if (e.key === 'Enter' && highlightedIndex >= 0) {
-      e.preventDefault();
-      e.stopPropagation();
-      input.value = items[highlightedIndex].textContent;
-      updateZurichTeammateField();
-      hideSuggestions();
     } else if (e.key === 'Enter' && highlightedIndex >= 0) {
       e.preventDefault();
       e.stopPropagation();
