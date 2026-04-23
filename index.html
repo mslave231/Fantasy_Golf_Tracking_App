@@ -300,16 +300,6 @@
     .pick-golfer {
       font-size: 11px;
       color: #c0c8d0;
-    .pick-cell.empty { color: #2a3a5c; font-size: 18px; line-height: 40px; }
-    .pick-cell.empty:hover { color: #2ecc71; }
-    .pick-cell.readonly {
-      cursor: default;
-      background: rgba(255,255,255,0.015);
-    }
-    .pick-cell.readonly:hover { background: rgba(255,255,255,0.015); }
-    .pick-golfer {
-      font-size: 11px;
-      color: #c0c8d0;
       font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
@@ -331,77 +321,122 @@
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.7);
+      background:
+        radial-gradient(circle at 20% 15%, rgba(46, 204, 113, 0.15), transparent 34%),
+        radial-gradient(circle at 78% 82%, rgba(52, 152, 219, 0.14), transparent 36%),
+        rgba(8, 13, 24, 0.76);
+      backdrop-filter: blur(6px);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 100;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      padding: 20px;
     }
-    .modal-overlay.active { display: flex; }
+    .modal-overlay.active { display: flex; opacity: 1; }
     .modal {
-      background: #162240;
-      border: 1px solid #2a3a5c;
-      border-radius: 10px;
-      padding: 24px;
-      max-width: 480px;
+      background:
+        linear-gradient(155deg, rgba(27, 44, 76, 0.94) 0%, rgba(13, 27, 48, 0.96) 55%, rgba(9, 19, 34, 0.98) 100%);
+      border: 1px solid rgba(90, 125, 176, 0.45);
+      border-radius: 16px;
+      box-shadow:
+        0 28px 60px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+        0 14px 28px rgba(46, 204, 113, 0.1);
+      padding: 24px 24px 22px;
+      max-width: 520px;
       width: 92%;
       max-height: 85vh;
       overflow-y: auto;
+      transform: translateY(18px) scale(0.98);
+      opacity: 0;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
-    .modal h2 { font-size: 16px; color: #fff; margin-bottom: 4px; }
-    .modal .modal-sub { font-size: 12px; color: #7f8c9b; margin-bottom: 16px; }
+    .modal-overlay.active .modal {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    .modal h2 {
+      font-size: 21px;
+      color: #fff;
+      margin-bottom: 6px;
+      letter-spacing: 0.2px;
+    }
+    .modal .modal-sub {
+      font-size: 12px;
+      color: #a3b3c5;
+      margin-bottom: 18px;
+    }
     .modal label {
       display: block;
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      color: #7f8c9b;
+      color: #92a3b7;
       margin-bottom: 6px;
       font-weight: 600;
     }
     .modal input[type="text"] {
       width: 100%;
-      padding: 10px 14px;
-      border-radius: 6px;
-      border: 1px solid #2a3a5c;
-      background: #0f1e36;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #2f4870;
+      background: rgba(8, 18, 34, 0.86);
       color: #fff;
-      font-size: 15px;
+      font-size: 14px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
     }
-    .modal input[type="text"]:focus { border-color: #2ecc71; }
+    .modal input[type="text"]:focus {
+      border-color: #3ddd84;
+      background: rgba(10, 23, 42, 0.95);
+      box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.2);
+    }
     .modal-actions {
       display: flex;
-      gap: 8px;
-      margin-top: 16px;
+      gap: 10px;
+      margin-top: 20px;
     }
     .modal-actions button {
-      padding: 8px 20px;
-      border-radius: 6px;
-      border: 1px solid #2a3a5c;
-      background: #0f1e36;
+      padding: 9px 18px;
+      border-radius: 10px;
+      border: 1px solid #334f74;
+      background: #132947;
       color: #e0e6ed;
       font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all 0.18s ease;
     }
-    .modal-actions button:hover { border-color: #2ecc71; }
+    .modal-actions button:hover {
+      border-color: #3ddd84;
+      transform: translateY(-1px);
+    }
     .modal-actions .btn-primary {
-      background: #2ecc71;
+      background: linear-gradient(135deg, #44de8d 0%, #2ecc71 70%);
       color: #0a1628;
       font-weight: 700;
-      border-color: #27ae60;
+      border-color: #36d480;
+      box-shadow: 0 8px 18px rgba(46, 204, 113, 0.24);
     }
-    .modal-actions .btn-primary:hover { background: #27ae60; }
-    .modal-actions .btn-clear { color: #e74c3c; border-color: #e74c3c; }
+    .modal-actions .btn-primary:hover { background: linear-gradient(135deg, #57e59a 0%, #35d87c 70%); }
+    .modal-actions .btn-clear {
+      color: #ff7a7a;
+      border-color: rgba(231, 76, 60, 0.65);
+      background: rgba(109, 29, 29, 0.25);
+    }
+    .modal-actions .btn-clear:hover {
+      border-color: rgba(255, 120, 120, 0.85);
+      background: rgba(145, 32, 32, 0.28);
+    }
     .validation-msg { color: #e74c3c; font-size: 12px; margin-top: 8px; display: none; }
     .used-golfers { margin-top: 14px; max-height: 150px; overflow-y: auto; }
     .used-golfers-title {
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      color: #7f8c9b;
+      color: #9eb0c2;
       margin-bottom: 6px;
       font-weight: 600;
     }
@@ -412,12 +447,12 @@
       gap: 4px;
     }
     .used-golfers li {
-      background: #0f1e36;
-      border: 1px solid #2a3a5c;
-      border-radius: 4px;
-      padding: 2px 8px;
+      background: rgba(11, 24, 44, 0.9);
+      border: 1px solid #2d4567;
+      border-radius: 999px;
+      padding: 4px 10px;
       font-size: 11px;
-      color: #a0aab5;
+      color: #b9c7d6;
     }
 
     /* Autocomplete dropdown */
