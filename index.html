@@ -292,6 +292,11 @@
     .pick-cell:hover { background: rgba(46, 204, 113, 0.07); }
     .pick-cell.empty { color: #2a3a5c; font-size: 18px; line-height: 40px; }
     .pick-cell.empty:hover { color: #2ecc71; }
+    .pick-cell.readonly {
+      cursor: default;
+      background: rgba(255,255,255,0.015);
+    }
+    .pick-cell.readonly:hover { background: rgba(255,255,255,0.015); }
     .pick-golfer {
       font-size: 11px;
       color: #c0c8d0;
@@ -709,6 +714,10 @@
         <input type="text" id="golferInput" placeholder="e.g. Scottie Scheffler" autocomplete="off">
         <div class="autocomplete-dropdown" id="golferSuggestions"></div>
       </div>
+      <div id="teammateFieldWrap" style="display:none; margin-top:12px;">
+        <label for="teammateInput">Teammate (Auto-filled)</label>
+        <input type="text" id="teammateInput" readonly placeholder="Select a Zurich golfer">
+      </div>
       <div class="validation-msg" id="validationMsg"></div>
       <div class="used-golfers" id="usedGolfersSection">
         <div class="used-golfers-title">Already picked this season:</div>
@@ -1002,6 +1011,22 @@ function getOrdinal(n) {
   return `${n}th`;
 }
 
+function isZurichTournament(tId) {
+  return tId === '401811943';
+}
+
+function getCompetitorAthletes(competitor) {
+  if (competitor?.athlete?.displayName) {
+    return [competitor.athlete];
+  }
+  if (Array.isArray(competitor?.roster)) {
+    return competitor.roster
+      .map(r => r?.athlete)
+      .filter(a => a?.displayName);
+  }
+  return [];
+}
+
 // ===== RENDERING =====
 function renderAll() {
   renderHeader();
@@ -1044,6 +1069,19 @@ function renderHeader() {
     if (t.isMajor) th.classList.add('major');
     if (state.scoredTournaments.includes(t.id)) th.classList.add('scored');
     headerRow.appendChild(th);
+
+    if (isZurichTournament(t.id)) {
+      const teammateTh = document.createElement('th');
+      teammateTh.dataset.tid = `${t.id}-teammate`;
+      teammateTh.title = `${t.name} Teammate`;
+      teammateTh.textContent = 'Zurich Teammate';
+      const teammateDateSpan = document.createElement('span');
+      teammateDateSpan.className = 'th-date';
+      teammateDateSpan.textContent = t.dates || '';
+      teammateTh.appendChild(teammateDateSpan);
+      if (state.scoredTournaments.includes(t.id)) teammateTh.classList.add('scored');
+      headerRow.appendChild(teammateTh);
+    }
   });
 
   const thTotal = document.createElement('th');
@@ -1109,6 +1147,42 @@ function renderGrid() {
 
       td.addEventListener('click', () => openPickModal(pIdx, t.id));
       tr.appendChild(td);
+
+      if (isZurichTournament(t.id)) {
+        const teammateTd = document.createElement('td');
+        teammateTd.className = 'pick-cell readonly';
+        if (pick && pick.teammate) {
+          const teammateDiv = document.createElement('div');
+          teammateDiv.className = 'pick-golfer';
+          teammateDiv.textContent = pick.teammate;
+          teammateDiv.title = pick.teammate;
+          teammateTd.appendChild(teammateDiv);
+
+          if (pick.earnings != null) {
+            const posDiv = document.createElement('div');
+            posDiv.className = 'pick-position';
+            if (pick.position === 'NF') {
+              posDiv.textContent = 'Not Found';
+              posDiv.style.color = '#e74c3c';
+            } else if (pick.earnings === 0) {
+              posDiv.textContent = 'CUT';
+              posDiv.style.color = '#e74c3c';
+            } else if (pick.position) {
+              posDiv.textContent = pick.position;
+            }
+            if (posDiv.textContent) teammateTd.appendChild(posDiv);
+
+            const earningsDiv = document.createElement('div');
+            earningsDiv.className = 'pick-earnings';
+            if (pick.earnings === 0) earningsDiv.classList.add('zero');
+            earningsDiv.textContent = formatMoney(pick.earnings);
+            teammateTd.appendChild(earningsDiv);
+          }
+        } else {
+          teammateTd.innerHTML = '<div class="pick-golfer" style="color:#7f8c9b;">Auto-fill</div>';
+        }
+        tr.appendChild(teammateTd);
+      }
     });
 
     const totalTd = document.createElement('td');
@@ -1434,7 +1508,8 @@ async function loadCurrentWeekLeaderboard() {
 
     const golferMap = {};
     competitors.forEach(c => {
-      const nameLower = c.athlete.displayName.toLowerCase();
+      const athletes = getCompetitorAthletes(c);
+      if (!athletes.length) return;
       let pos = c.status.position?.displayName || '--';
       let total = getTotalScoreDisplay(c);
       let thru = '--';
@@ -1476,21 +1551,26 @@ async function loadCurrentWeekLeaderboard() {
         }
       }
 
-      golferMap[nameLower] = {
-        displayName: c.athlete.displayName,
-        pos,
-        total,
-        thru,
-        today,
-        estimatedPayout: getEstimatedPayout(pos),
-        posNum,
-        isCut,
-        headshot: c.athlete.headshot?.href || `https://a.espncdn.com/i/headshots/golf/players/full/${c.athlete.id}.png`
-      };
+      athletes.forEach((athlete, idx) => {
+        const nameLower = athlete.displayName.toLowerCase();
+        const teammate = athletes.length > 1 ? athletes[(idx + 1) % athletes.length]?.displayName : null;
+        golferMap[nameLower] = {
+          displayName: athlete.displayName,
+          teammate: teammate || null,
+          pos,
+          total,
+          thru,
+          today,
+          estimatedPayout: getEstimatedPayout(pos),
+          posNum,
+          isCut,
+          headshot: athlete.headshot?.href || `https://a.espncdn.com/i/headshots/golf/players/full/${athlete.id}.png`
+        };
 
-      // Cache full competitor object for scorecard modal
-      if (!liveCompetitorData[tId]) liveCompetitorData[tId] = {};
-      liveCompetitorData[tId][nameLower] = c;
+        // Cache full competitor object for scorecard modal
+        if (!liveCompetitorData[tId]) liveCompetitorData[tId] = {};
+        liveCompetitorData[tId][nameLower] = c;
+      });
     });
 
     const entries = state.participants.map((pName, pIdx) => {
@@ -1636,7 +1716,11 @@ function openPickModal(pIdx, tId) {
   const key = `${pIdx}-${tId}`;
   const existing = state.picks[key];
   const input = document.getElementById('golferInput');
+  const teammateWrap = document.getElementById('teammateFieldWrap');
+  const teammateInput = document.getElementById('teammateInput');
   input.value = existing ? existing.golfer : '';
+  teammateInput.value = existing?.teammate || '';
+  teammateWrap.style.display = isZurichTournament(tId) ? 'block' : 'none';
 
   const valMsg = document.getElementById('validationMsg');
   valMsg.style.display = 'none';
@@ -1662,6 +1746,7 @@ function openPickModal(pIdx, tId) {
   input.focus();
   input.select();
   fetchGolferNames(tId); // Prefetch for autocomplete
+  updateZurichTeammateField();
 }
 
 function closePickModal() {
@@ -1714,13 +1799,21 @@ function savePick() {
 
   const key = `${pIdx}-${tId}`;
   const existing = state.picks[key];
+  const teammateName = isZurichTournament(tId)
+    ? (document.getElementById('teammateInput').value || '').trim()
+    : '';
 
   if (existing && existing.golfer.toLowerCase() !== golferName.toLowerCase() && existing.earnings != null) {
-    state.picks[key] = { golfer: golferName, earnings: null, position: null };
+    state.picks[key] = { golfer: golferName, teammate: teammateName || null, earnings: null, position: null };
   } else if (existing) {
     existing.golfer = golferName;
+    if (isZurichTournament(tId)) {
+      existing.teammate = teammateName || null;
+    } else {
+      delete existing.teammate;
+    }
   } else {
-    state.picks[key] = { golfer: golferName, earnings: null, position: null };
+    state.picks[key] = { golfer: golferName, teammate: teammateName || null, earnings: null, position: null };
   }
 
   saveState();
@@ -1814,12 +1907,19 @@ async function scoreTournament(tournamentId, options = {}) {
     const competitors = data.events[0].competitions[0].competitors;
 
     const resultsMap = {};
+    const teammateMap = {};
     competitors.forEach(c => {
-      const name = c.athlete.displayName;
       const earningsStr = c.statistics?.[1]?.displayValue || '$0';
       const earnings = parseEarnings(earningsStr);
       const position = c.status?.position?.displayName || '-';
-      resultsMap[name.toLowerCase()] = { earnings, position, displayName: name };
+      const athletes = getCompetitorAthletes(c);
+      if (athletes.length === 2) {
+        teammateMap[athletes[0].displayName.toLowerCase()] = athletes[1].displayName;
+        teammateMap[athletes[1].displayName.toLowerCase()] = athletes[0].displayName;
+      }
+      athletes.forEach(a => {
+        resultsMap[a.displayName.toLowerCase()] = { earnings, position, displayName: a.displayName };
+      });
     });
 
     const matchResults = [];
@@ -1832,6 +1932,9 @@ async function scoreTournament(tournamentId, options = {}) {
           pick.earnings = result.earnings;
           pick.position = result.position;
           pick.golfer = result.displayName;
+          if (isZurichTournament(tournamentId)) {
+            pick.teammate = teammateMap[result.displayName.toLowerCase()] || pick.teammate || null;
+          }
           matchResults.push({ participant: pName, golfer: result.displayName, position: result.position, earnings: result.earnings, matched: true });
         } else {
           const lastName = pick.golfer.trim().split(' ').pop().toLowerCase();
@@ -2361,6 +2464,54 @@ function closeScorecardModal() {
 
 // ===== GOLFER NAME AUTOCOMPLETE =====
 const golferNameCache = {};
+const zurichTeammateMapCache = {};
+
+async function fetchZurichTeammateMap(tournamentId) {
+  if (!isZurichTournament(tournamentId)) return {};
+  if (zurichTeammateMapCache[tournamentId]) return zurichTeammateMapCache[tournamentId];
+  try {
+    const url = `https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard?event=${tournamentId}`;
+    const res = await fetch(url);
+    if (!res.ok) return {};
+    const data = await res.json();
+    const competitors = data?.events?.[0]?.competitions?.[0]?.competitors || [];
+    const map = {};
+    competitors.forEach(c => {
+      const athletes = getCompetitorAthletes(c);
+      if (athletes.length !== 2) return;
+      const a = athletes[0].displayName;
+      const b = athletes[1].displayName;
+      map[a.toLowerCase()] = b;
+      map[b.toLowerCase()] = a;
+    });
+    zurichTeammateMapCache[tournamentId] = map;
+    return map;
+  } catch (e) {
+    return {};
+  }
+}
+
+async function updateZurichTeammateField() {
+  const { tId } = currentPickContext;
+  const teammateWrap = document.getElementById('teammateFieldWrap');
+  const teammateInput = document.getElementById('teammateInput');
+  const golferInput = document.getElementById('golferInput');
+  if (!teammateWrap || !teammateInput || !golferInput) return;
+  if (!isZurichTournament(tId)) {
+    teammateWrap.style.display = 'none';
+    teammateInput.value = '';
+    return;
+  }
+
+  teammateWrap.style.display = 'block';
+  const entered = golferInput.value.trim().toLowerCase();
+  if (!entered) {
+    teammateInput.value = '';
+    return;
+  }
+  const map = await fetchZurichTeammateMap(tId);
+  teammateInput.value = map[entered] || '';
+}
 
 async function fetchGolferNames(tournamentId) {
   if (golferNameCache[tournamentId]) return golferNameCache[tournamentId];
@@ -2370,9 +2521,16 @@ async function fetchGolferNames(tournamentId) {
     if (!res.ok) return [];
     const data = await res.json();
     const competitors = data?.events?.[0]?.competitions?.[0]?.competitors || [];
-    const names = competitors.map(c => c.athlete.displayName).sort();
-    golferNameCache[tournamentId] = names;
-    return names;
+    const names = [];
+    competitors.forEach(c => {
+      getCompetitorAthletes(c).forEach(a => names.push(a.displayName));
+    });
+    const uniqueNames = [...new Set(names)].sort();
+    if (isZurichTournament(tournamentId)) {
+      await fetchZurichTeammateMap(tournamentId);
+    }
+    golferNameCache[tournamentId] = uniqueNames;
+    return uniqueNames;
   } catch (e) {
     return [];
   }
@@ -2398,6 +2556,7 @@ function initAutocomplete() {
         input.value = name;
         dropdown.classList.remove('active');
         highlightedIndex = -1;
+        updateZurichTeammateField();
       });
       dropdown.appendChild(div);
     });
@@ -2412,6 +2571,7 @@ function initAutocomplete() {
 
   input.addEventListener('input', async () => {
     const val = input.value.trim().toLowerCase();
+    updateZurichTeammateField();
     if (!val) { hideSuggestions(); return; }
     const { tId } = currentPickContext;
     if (!tId) return;
@@ -2435,6 +2595,7 @@ function initAutocomplete() {
       e.preventDefault();
       e.stopPropagation();
       input.value = items[highlightedIndex].textContent;
+      updateZurichTeammateField();
       hideSuggestions();
     } else if (e.key === 'Escape') {
       hideSuggestions();
