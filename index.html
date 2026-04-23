@@ -292,6 +292,11 @@
     .pick-cell:hover { background: rgba(46, 204, 113, 0.07); }
     .pick-cell.empty { color: #2a3a5c; font-size: 18px; line-height: 40px; }
     .pick-cell.empty:hover { color: #2ecc71; }
+    .pick-cell.readonly {
+      cursor: default;
+      background: rgba(255,255,255,0.015);
+    }
+    .pick-cell.readonly:hover { background: rgba(255,255,255,0.015); }
     .pick-golfer {
       font-size: 11px;
       color: #c0c8d0;
@@ -1064,6 +1069,19 @@ function renderHeader() {
     if (t.isMajor) th.classList.add('major');
     if (state.scoredTournaments.includes(t.id)) th.classList.add('scored');
     headerRow.appendChild(th);
+
+    if (isZurichTournament(t.id)) {
+      const teammateTh = document.createElement('th');
+      teammateTh.dataset.tid = `${t.id}-teammate`;
+      teammateTh.title = `${t.name} Teammate`;
+      teammateTh.textContent = 'Zurich Teammate';
+      const teammateDateSpan = document.createElement('span');
+      teammateDateSpan.className = 'th-date';
+      teammateDateSpan.textContent = t.dates || '';
+      teammateTh.appendChild(teammateDateSpan);
+      if (state.scoredTournaments.includes(t.id)) teammateTh.classList.add('scored');
+      headerRow.appendChild(teammateTh);
+    }
   });
 
   const thTotal = document.createElement('th');
@@ -1138,6 +1156,42 @@ function renderGrid() {
 
       td.addEventListener('click', () => openPickModal(pIdx, t.id));
       tr.appendChild(td);
+
+      if (isZurichTournament(t.id)) {
+        const teammateTd = document.createElement('td');
+        teammateTd.className = 'pick-cell readonly';
+        if (pick && pick.teammate) {
+          const teammateDiv = document.createElement('div');
+          teammateDiv.className = 'pick-golfer';
+          teammateDiv.textContent = pick.teammate;
+          teammateDiv.title = pick.teammate;
+          teammateTd.appendChild(teammateDiv);
+
+          if (pick.earnings != null) {
+            const posDiv = document.createElement('div');
+            posDiv.className = 'pick-position';
+            if (pick.position === 'NF') {
+              posDiv.textContent = 'Not Found';
+              posDiv.style.color = '#e74c3c';
+            } else if (pick.earnings === 0) {
+              posDiv.textContent = 'CUT';
+              posDiv.style.color = '#e74c3c';
+            } else if (pick.position) {
+              posDiv.textContent = pick.position;
+            }
+            if (posDiv.textContent) teammateTd.appendChild(posDiv);
+
+            const earningsDiv = document.createElement('div');
+            earningsDiv.className = 'pick-earnings';
+            if (pick.earnings === 0) earningsDiv.classList.add('zero');
+            earningsDiv.textContent = formatMoney(pick.earnings);
+            teammateTd.appendChild(earningsDiv);
+          }
+        } else {
+          teammateTd.innerHTML = '<div class="pick-golfer" style="color:#7f8c9b;">Auto-fill</div>';
+        }
+        tr.appendChild(teammateTd);
+      }
     });
 
     const totalTd = document.createElement('td');
