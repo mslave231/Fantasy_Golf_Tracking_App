@@ -1535,16 +1535,6 @@ async function loadCurrentWeekLeaderboard() {
       let thru = '--';
       let today = getTodayScoreDisplay(c);
       let posNum = Infinity;
-
-    const golferMap = {};
-    competitors.forEach(c => {
-      const athletes = getCompetitorAthletes(c);
-      if (!athletes.length) return;
-      let pos = c.status.position?.displayName || '--';
-      let total = getTotalScoreDisplay(c);
-      let thru = '--';
-      let today = getTodayScoreDisplay(c);
-      let posNum = Infinity;
       let isCut = false;
 
       const teeTimeValue = c.status?.teeTime || c.teeTime;
@@ -1581,27 +1571,6 @@ async function loadCurrentWeekLeaderboard() {
         }
       }
 
-      athletes.forEach((athlete, idx) => {
-        const nameLower = athlete.displayName.toLowerCase();
-        const teammate = athletes.length > 1 ? athletes[(idx + 1) % athletes.length]?.displayName : null;
-        golferMap[nameLower] = {
-          displayName: athlete.displayName,
-          teammate: teammate || null,
-          pos,
-          total,
-          thru,
-          today,
-          estimatedPayout: getEstimatedPayout(pos),
-          posNum,
-          isCut,
-          headshot: athlete.headshot?.href || `https://a.espncdn.com/i/headshots/golf/players/full/${athlete.id}.png`
-        };
-
-        // Cache full competitor object for scorecard modal
-        if (!liveCompetitorData[tId]) liveCompetitorData[tId] = {};
-        liveCompetitorData[tId][nameLower] = c;
-      });
-    });
       athletes.forEach((athlete, idx) => {
         const nameLower = athlete.displayName.toLowerCase();
         const teammate = athletes.length > 1 ? athletes[(idx + 1) % athletes.length]?.displayName : null;
