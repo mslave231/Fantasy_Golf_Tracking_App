@@ -1984,7 +1984,7 @@ async function scoreTournament(tournamentId, options = {}) {
       if (pick) {
         const result = resultsMap[pick.golfer.toLowerCase()];
         if (result) {
-          pick.earnings = isZurichTournament(tournamentId) ? result.earnings * 2 : result.earnings;
+          pick.earnings = result.earnings;
           pick.position = result.position;
           pick.golfer = result.displayName;
           if (isZurichTournament(tournamentId)) {
@@ -2001,7 +2001,7 @@ async function scoreTournament(tournamentId, options = {}) {
             }
           }
           if (found) {
-            pick.earnings = isZurichTournament(tournamentId) ? found.earnings * 2 : found.earnings;
+            pick.earnings = found.earnings;
             pick.position = found.position;
             pick.golfer = found.displayName;
             if (isZurichTournament(tournamentId)) {
