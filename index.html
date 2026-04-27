@@ -1963,6 +1963,7 @@ async function scoreTournament(tournamentId, options = {}) {
 
     const resultsMap = {};
     const teammateMap = {};
+    const zurichEvent = isZurichTournament(tournamentId);
     competitors.forEach(c => {
       const earningsStr = c.statistics?.[1]?.displayValue || '$0';
       const earnings = parseEarnings(earningsStr);
@@ -1972,8 +1973,11 @@ async function scoreTournament(tournamentId, options = {}) {
         teammateMap[athletes[0].displayName.toLowerCase()] = athletes[1].displayName;
         teammateMap[athletes[1].displayName.toLowerCase()] = athletes[0].displayName;
       }
+      const perAthleteEarnings = (zurichEvent && athletes.length > 1)
+        ? Math.round(earnings / athletes.length)
+        : earnings;
       athletes.forEach(a => {
-        resultsMap[a.displayName.toLowerCase()] = { earnings, position, displayName: a.displayName };
+        resultsMap[a.displayName.toLowerCase()] = { earnings: perAthleteEarnings, position, displayName: a.displayName };
       });
     });
 
