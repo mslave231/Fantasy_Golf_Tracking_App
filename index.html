@@ -1766,11 +1766,27 @@ function closePickModal() {
 
 function getUsedGolfers(pIdx, excludeTId) {
   const used = [];
+  const seen = new Set();
+
+  function addUsedName(name) {
+    if (!name || !name.trim()) return;
+    const trimmed = name.trim();
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    used.push(trimmed);
+  }
+
   TOURNAMENTS.forEach(t => {
     if (t.id === excludeTId) return;
     const key = `${pIdx}-${t.id}`;
     const pick = state.picks[key];
-    if (pick) used.push(pick.golfer);
+    if (!pick) return;
+
+    addUsedName(pick.golfer);
+    if (isZurichTournament(t.id)) {
+      addUsedName(pick.teammate);
+    }
   });
   return used.sort();
 }
