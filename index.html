@@ -1116,18 +1116,6 @@ function renderHeader() {
     if (state.scoredTournaments.includes(t.id)) th.classList.add('scored');
     headerRow.appendChild(th);
 
-    if (isZurichTournament(t.id)) {
-      const teammateTh = document.createElement('th');
-      teammateTh.dataset.tid = `${t.id}-teammate`;
-      teammateTh.title = `${t.name} Teammate`;
-      teammateTh.textContent = 'Zurich Teammate';
-      const teammateDateSpan = document.createElement('span');
-      teammateDateSpan.className = 'th-date';
-      teammateDateSpan.textContent = t.dates || '';
-      teammateTh.appendChild(teammateDateSpan);
-      if (state.scoredTournaments.includes(t.id)) teammateTh.classList.add('scored');
-      headerRow.appendChild(teammateTh);
-    }
   });
 
   const thTotal = document.createElement('th');
@@ -1203,41 +1191,6 @@ function renderGrid() {
       td.addEventListener('click', () => openPickModal(pIdx, t.id));
       tr.appendChild(td);
 
-      if (isZurichTournament(t.id)) {
-        const teammateTd = document.createElement('td');
-        teammateTd.className = 'pick-cell readonly';
-        if (pick && pick.teammate) {
-          const teammateDiv = document.createElement('div');
-          teammateDiv.className = 'pick-golfer';
-          teammateDiv.textContent = pick.teammate;
-          teammateDiv.title = pick.teammate;
-          teammateTd.appendChild(teammateDiv);
-
-          if (pick.earnings != null) {
-            const posDiv = document.createElement('div');
-            posDiv.className = 'pick-position';
-            if (pick.position === 'NF') {
-              posDiv.textContent = 'Not Found';
-              posDiv.style.color = '#e74c3c';
-            } else if (pick.earnings === 0) {
-              posDiv.textContent = 'CUT';
-              posDiv.style.color = '#e74c3c';
-            } else if (pick.position) {
-              posDiv.textContent = pick.position;
-            }
-            if (posDiv.textContent) teammateTd.appendChild(posDiv);
-
-            const earningsDiv = document.createElement('div');
-            earningsDiv.className = 'pick-earnings';
-            if (pick.earnings === 0) earningsDiv.classList.add('zero');
-            earningsDiv.textContent = formatMoney(pick.earnings);
-            teammateTd.appendChild(earningsDiv);
-          }
-        } else {
-          teammateTd.innerHTML = '<div class="pick-golfer" style="color:#7f8c9b;">Auto-fill</div>';
-        }
-        tr.appendChild(teammateTd);
-      }
     });
 
     const totalTd = document.createElement('td');
@@ -1530,8 +1483,7 @@ async function loadCurrentWeekLeaderboard() {
     const getRankPayout = (rank) => {
       if (!Number.isInteger(rank) || rank < 1 || rank > payoutPctTable.length) return 0;
       const payout = Math.round(purseAmount * payoutPctTable[rank - 1] / 100);
-      // Zurich payouts are team amounts on ESPN; fantasy picks are individual golfers.
-      return isZurichTournament(tId) ? Math.round(payout / 2) : payout;
+      return payout;
     };
 
     const tieCountsByPosition = {};
@@ -1965,7 +1917,6 @@ async function scoreTournament(tournamentId, options = {}) {
 
     const resultsMap = {};
     const teammateMap = {};
-    const zurichEvent = isZurichTournament(tournamentId);
     competitors.forEach(c => {
       const earningsStr = c.statistics?.[1]?.displayValue || '$0';
       const earnings = parseEarnings(earningsStr);
@@ -1975,9 +1926,7 @@ async function scoreTournament(tournamentId, options = {}) {
         teammateMap[athletes[0].displayName.toLowerCase()] = athletes[1].displayName;
         teammateMap[athletes[1].displayName.toLowerCase()] = athletes[0].displayName;
       }
-      const perAthleteEarnings = (zurichEvent && athletes.length > 1)
-        ? Math.round(earnings / athletes.length)
-        : earnings;
+      const perAthleteEarnings = earnings;
       athletes.forEach(a => {
         resultsMap[a.displayName.toLowerCase()] = { earnings: perAthleteEarnings, position, displayName: a.displayName };
       });
