@@ -1529,7 +1529,9 @@ async function loadCurrentWeekLeaderboard() {
 
     const getRankPayout = (rank) => {
       if (!Number.isInteger(rank) || rank < 1 || rank > payoutPctTable.length) return 0;
-      return Math.round(purseAmount * payoutPctTable[rank - 1] / 100);
+      const payout = Math.round(purseAmount * payoutPctTable[rank - 1] / 100);
+      // Zurich payouts are team amounts on ESPN; fantasy picks are individual golfers.
+      return isZurichTournament(tId) ? Math.round(payout / 2) : payout;
     };
 
     const tieCountsByPosition = {};
