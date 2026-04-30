@@ -1933,20 +1933,25 @@ async function scoreTournament(tournamentId, options = {}) {
 
     const competitors = data.events[0].competitions[0].competitors;
 
+    const applyTournamentEarningsRules = (baseEarnings) => {
+      if (!Number.isFinite(baseEarnings)) return 0;
+      return isZurichTournament(tournamentId) ? baseEarnings * 2 : baseEarnings;
+    };
+
     const resultsMap = {};
     const teammateMap = {};
     competitors.forEach(c => {
       const earningsStr = c.statistics?.[1]?.displayValue || '$0';
       const earnings = parseEarnings(earningsStr);
+      const adjustedEarnings = applyTournamentEarningsRules(earnings);
       const position = c.status?.position?.displayName || '-';
       const athletes = getCompetitorAthletes(c);
       if (athletes.length === 2) {
         teammateMap[athletes[0].displayName.toLowerCase()] = athletes[1].displayName;
         teammateMap[athletes[1].displayName.toLowerCase()] = athletes[0].displayName;
       }
-      const perAthleteEarnings = earnings;
       athletes.forEach(a => {
-        resultsMap[a.displayName.toLowerCase()] = { earnings: perAthleteEarnings, position, displayName: a.displayName };
+        resultsMap[a.displayName.toLowerCase()] = { earnings: adjustedEarnings, position, displayName: a.displayName };
       });
     });
 
