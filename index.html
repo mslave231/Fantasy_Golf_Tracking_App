@@ -1512,7 +1512,9 @@ async function loadCurrentWeekLeaderboard() {
       }
 
       if (!slots) return '--';
-      return formatMoney(Math.round(total / slots));
+      const avgPayout = Math.round(total / slots);
+      const perGolferPayout = isZurichTournament(tId) ? avgPayout * 2 : avgPayout;
+      return formatMoney(perGolferPayout);
     };
 
     const golferMap = {};
